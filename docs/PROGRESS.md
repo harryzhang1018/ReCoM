@@ -146,6 +146,30 @@ Optional follow-ups: failure-case figures (`recom.eval.visualize.save_worst_fram
 (`python -m recom.data.nedm_export data/pilot1b <out>`), orientation-stratified set (`orientation_strata` in a config),
 neural-SDF baseline, Phase 1C.
 
+## 7b. Cluster (Euler) workflow — added 2026-08-26 because the local box hung
+
+Access: `ssh euler` (login `euler-login-1.engr.wisc.edu`, user `hzhang699`, home `/srv/home/hzhang699`, repo cloned at
+`~/ReCoM`). Partitions available: `research` (RTX4000Ada ×8 nodes, RTXA4500 ×8, A100 ×4 on euler17/19, H100 ×4 on
+euler29/30, 16-day limit) and `sbel` (euler16 2×2080Ti, euler19 4×A100). Conda on the cluster:
+
+```bash
+module load conda/miniforge && bootstrap-conda && conda activate recom     # cluster/env.sh does this
+bash cluster/setup_env.sh                                                  # one-time env creation (done 2026-08-26)
+```
+
+Pipeline submission (from `~/ReCoM`, after `git pull`):
+
+```bash
+bash cluster/submit_all.sh            # gen_data -> C(patch,point,analytic) + A/B(fixed,pilot) -> D,E -> summary
+SKIP_GEN=1 bash cluster/submit_all.sh # if data/ already exists on the cluster
+squeue -u $USER; tail -f cluster/logs/<job>-<id>.out
+```
+
+`cluster/train.sbatch` is a generic single-GPU job (`sbatch --job-name=X cluster/train.sbatch <script> <args>`);
+`cluster/gen_data.sbatch` regenerates and validates the datasets on a 32-core CPU allocation. Results land in
+`runs/*/final_metrics.json` on the cluster and `docs/RESULTS_cluster.md` (summary job). Copy back with
+`scp -r euler:ReCoM/runs/<name>/final_metrics.json ...` or commit `docs/RESULTS_cluster.md` from the cluster.
+
 ## 8. Open questions / decisions to revisit
 
 * Contact-encoder threshold for "active" is 0.5 on the logit; the analytic baseline uses margin 2 mm while Chrono
