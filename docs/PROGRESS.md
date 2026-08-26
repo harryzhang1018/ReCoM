@@ -233,8 +233,25 @@ free flight exact (pos err @100 = 0), impact dv err 0.58–0.69 m/s vs 0.44–0.
 @500 = 0.047–0.050 m vs 0.041–0.049, penetration 2 cm vs 1 cm, same on held-out geometry → within ~15–30 % of the
 oracle without any adaptation of the transition model (round-1 D had failed completely).
 
-Pending (jobs 16032–16035): E_r2 with true joint fine-tuning + retained contact loss (patch, 8 k steps), D/E with the
-point encoder, and the summary table (`docs/RESULTS_cluster.md` on the cluster).
+**Experiment E_r2 (patch 30k encoder, true joint fine-tuning, retained contact loss, 8-step unrolled loss, 8 k steps,
+73 min on RTX4000Ada)** — learned-contact closed loop, median over episodes:
+
+| split | impact dv err | pos err @500 | pos err final (2 s) | max penetration | rot err final |
+| --- | --- | --- | --- | --- | --- |
+| val | 0.42 m/s | 0.046 m | 0.17 m | 4.7 mm | 93° |
+| test | 0.48 m/s | 0.051 m | 0.16 m | 7.8 mm | 92° |
+| test_geometry | 0.43 m/s | 0.047 m | 0.15 m | 3.6 mm | 98° |
+| oracle B (analytic contacts) for reference | 0.45–0.54 m/s | 0.041–0.049 m | 0.12–0.18 m | ~10 mm | 87–94° |
+
+→ Joint fine-tuning with the explicit contact loss retained reaches the oracle-contact upper bound on impact and
+position metrics, on held-out geometry as well (closed-loop degradation gate met). Evaluating this model with
+analytic contacts is worse (impact 1.7–1.9 m/s) because the transition now relies on the fine-tuned encoder's latent.
+
+**Gate bug found via D_point**: D with the (better) point encoder gave impact dv err 2.2–2.9 m/s. Cause: the frozen
+NeDM was trained with a hard 0/1 gate but the rollout used the encoder's *soft* probability as the gate, scaling
+impulses down at uncertain first-impact frames. Fixed (`soft_gate` only for jointly trained models) and both D
+variants are being re-evaluated with `--eval-only` (jobs 16041/16042). `expE_r2_point` OOMed on a 40 GB A100
+(152 tokens × 10 k frames with autograd) → resubmitted with batch 64 (job 16043); summary job 16044.
 
 ## 8. Open questions / decisions to revisit
 
