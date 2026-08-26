@@ -253,6 +253,24 @@ impulses down at uncertain first-impact frames. Fixed (`soft_gate` only for join
 variants are being re-evaluated with `--eval-only` (jobs 16041/16042). `expE_r2_point` OOMed on a 40 GB A100
 (152 tokens × 10 k frames with autograd) → resubmitted with batch 64 (job 16043); summary job 16044.
 
+**Experiment D with the gate fixed (`--eval-only` re-evaluation of the frozen, gt-trained NeDM; jobs 16041/16042)** —
+median closed-loop metrics, learned contacts vs analytic contacts recomputed from the predicted pose:
+
+| encoder in the loop | split | impact dv err learned / analytic | pos err @500 learned / analytic | pos err final learned / analytic |
+| --- | --- | --- | --- | --- |
+| patch 30k | test | 0.60 / 0.55 m/s | 0.045 / 0.044 m | 0.16 / 0.13 m |
+| patch 30k | test_geometry | 0.46 / 0.53 m/s | 0.039 / 0.047 m | 0.13 / 0.11 m |
+| point 30k | test | 0.43 / 0.45 m/s | 0.050 / 0.048 m | 0.17 / 0.18 m |
+| point 30k | test_geometry | 0.44 / 0.46 m/s | 0.045 / 0.047 m | 0.11 / 0.11 m |
+
+→ With a hard activation gate, **learned contacts feeding a frozen NeDM match the exact-contact oracle within noise
+(≤10 % on every metric, held-out geometry included)** — Stage D of the plan passes without joint fine-tuning. Free
+flight stays exact (pos err @100 = 1e-7) because both encoders have ~0 false positives away from the ground.
+The soft-gate variant (round 2b) is what had inflated D_point to 2–3 m/s.
+
+Pending: `expE_r2_point` (joint fine-tuning with the point encoder) needs an 80 GB GPU (OOM on 40 GB / 20 GB);
+resubmitted on an H100 as job 16046 (summary 16047).
+
 ## 8. Open questions / decisions to revisit
 
 * Contact-encoder threshold for "active" is 0.5 on the logit; the analytic baseline uses margin 2 mm while Chrono
