@@ -1,0 +1,12 @@
+[project]
+name = "recom"
+version = "0.1.0"
+description = "ReCoM / ContactROM: learned contact-information encoder for neural reduced dynamics (Study 1: Chrono box drop)"
+requires-python = ">=3.12"
+dependencies = ["numpy>=2.0", "scipy>=1.14", "torch>=2.12", "pyyaml", "tqdm", "matplotlib", "pyarrow>=25"]
+
+[tool.setuptools.packages.find]
+include = ["recom*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

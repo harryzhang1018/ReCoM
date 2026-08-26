@@ -1,0 +1,30 @@
+# Study 1 pilot set: 2000 episodes, variable box geometry (Phase 1B), 240 box instances
+name: pilot1b
+output_dir: data/pilot1b
+phase: "1B"
+n_episodes: 2000
+seed: 20260825
+n_geometries: 240
+side_range: [0.05, 0.30]
+max_aspect: 4.0
+fixed_box_sides: [0.20, 0.15, 0.10]
+clearance_range: [0.10, 1.50]
+xy_range: 0.0
+n_workers: 28
+physics:
+  dt: 0.001
+  max_duration: 2.0
+  gravity: 9.81
+  contact_method: NSC
+  collision_system: BULLET
+  solver: APGD
+  solver_max_iterations: 100
+  solver_tolerance: 1.0e-6
+  timestepper: EULER_IMPLICIT_LINEARIZED
+  collision_envelope: 0.001
+  collision_margin: 0.0005
+  min_bounce_speed: 0.15
+  friction: 0.5
+  restitution: 0.3
+  density: 1000.0
+  near_contact_margin: 0.01

@@ -1,0 +1,28 @@
+# Study 1 smoke set: 50 deterministic episodes, fixed box (Phase 1A)
+name: smoke
+output_dir: data/smoke
+phase: "1A"
+n_episodes: 50
+seed: 12345
+n_geometries: 1
+fixed_box_sides: [0.20, 0.15, 0.10]
+clearance_range: [0.10, 1.50]
+xy_range: 0.0
+n_workers: 16
+physics:
+  dt: 0.001
+  max_duration: 2.0
+  gravity: 9.81
+  contact_method: NSC
+  collision_system: BULLET
+  solver: APGD
+  solver_max_iterations: 100
+  solver_tolerance: 1.0e-6
+  timestepper: EULER_IMPLICIT_LINEARIZED
+  collision_envelope: 0.001
+  collision_margin: 0.0005
+  min_bounce_speed: 0.15
+  friction: 0.5
+  restitution: 0.3
+  density: 1000.0
+  near_contact_margin: 0.01

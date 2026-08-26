@@ -1,0 +1,22 @@
+# ReCoM (Reduced Contact Model) environment: PyChrono 10 + PyTorch (CUDA)
+#   conda env create -f environment.yml
+#   (equivalent manual steps: conda create -n recom python=3.12 && conda activate recom
+#    && conda install projectchrono::pychrono -c conda-forge && pip install torch numpy scipy pyarrow pyyaml tqdm matplotlib pytest tensorboard)
+name: recom
+channels:
+  - projectchrono
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pip
+  - projectchrono::pychrono=10.0.0
+  - pip:
+      - torch>=2.12
+      - numpy>=2.0
+      - scipy>=1.14
+      - pyarrow>=25
+      - pyyaml
+      - tqdm
+      - matplotlib
+      - pytest
+      - tensorboard

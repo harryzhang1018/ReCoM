@@ -1,0 +1,28 @@
+# Phase 1A fixed-box set (600 episodes) for state-only vs oracle-contact NeDM debugging
+name: fixed1a
+output_dir: data/fixed1a
+phase: "1A"
+n_episodes: 600
+seed: 777
+n_geometries: 1
+fixed_box_sides: [0.20, 0.15, 0.10]
+clearance_range: [0.10, 1.50]
+xy_range: 0.0
+n_workers: 28
+physics:
+  dt: 0.001
+  max_duration: 2.0
+  gravity: 9.81
+  contact_method: NSC
+  collision_system: BULLET
+  solver: APGD
+  solver_max_iterations: 100
+  solver_tolerance: 1.0e-6
+  timestepper: EULER_IMPLICIT_LINEARIZED
+  collision_envelope: 0.001
+  collision_margin: 0.0005
+  min_bounce_speed: 0.15
+  friction: 0.5
+  restitution: 0.3
+  density: 1000.0
+  near_contact_margin: 0.01
