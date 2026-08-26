@@ -1,0 +1,104 @@
+............................                                             [100%]
+28 passed in 64.89s (0:01:04)
+[2/50] 11.1s
+[4/50] 11.1s
+[6/50] 11.5s
+[8/50] 11.5s
+[10/50] 11.8s
+[12/50] 11.8s
+[14/50] 11.8s
+[16/50] 11.8s
+[18/50] 11.8s
+[20/50] 12.3s
+[22/50] 12.3s
+[24/50] 12.3s
+[26/50] 12.3s
+[28/50] 12.8s
+[30/50] 12.8s
+[32/50] 12.8s
+[34/50] 12.8s
+[36/50] 12.8s
+[38/50] 12.8s
+[40/50] 14.0s
+[42/50] 14.0s
+[44/50] 14.0s
+[46/50] 14.0s
+[48/50] 14.0s
+[50/50] 14.0s
+summary: {'n_episodes': 50, 'total_steps': 59377, 'mean_steps': 1187.54, 'termination': {'settled': 45, 'max_duration': 5}, 'approach_modes': {1: 15, 2: 28, 3: 7}, 'geometry_groups': 1, 'orientation_coverage': {'corner': 15, 'edge': 28, 'face': 7}, 'split_sizes': {'train': 35, 'val': 8, 'test': 7, 'test_geometry': 0, 'test_height': 0, 'test_orientation_corner': 3, 'test_orientation_edge': 4, 'test_orientation_face': 0}, 'generation_wall_s': 14.378852844238281}
+schema failures: none
+  schema_pass: True
+  free_flight_pass: True
+  free_flight_max_pos_err: 0.0027075599999850097
+  free_flight_max_vel_err: 6.306066779870889e-14
+  timing_pass: True
+  timing_err_steps_median: 0.2633958356733217
+  timing_err_steps_max: 0.6951196368272008
+  replay_pass: True
+  replay_max_state_diff: 0.0
+  no_split_leakage: True
+[30/600] 12.8s
+[60/600] 14.1s
+[90/600] 22.1s
+[120/600] 22.1s
+[150/600] 22.1s
+[180/600] 23.3s
+[210/600] 23.6s
+[240/600] 24.9s
+[270/600] 27.8s
+[300/600] 28.0s
+[330/600] 29.2s
+[360/600] 31.7s
+[390/600] 33.3s
+[420/600] 34.9s
+[450/600] 37.1s
+[480/600] 37.7s
+[510/600] 40.8s
+[540/600] 41.1s
+[570/600] 43.2s
+[600/600] 43.2s
+summary: {'n_episodes': 600, 'total_steps': 713470, 'mean_steps': 1189.1166666666666, 'termination': {'max_duration': 49, 'settled': 551}, 'approach_modes': {1: 206, 2: 322, 3: 72}, 'geometry_groups': 1, 'orientation_coverage': {'corner': 206, 'edge': 322, 'face': 72}, 'split_sizes': {'train': 420, 'val': 90, 'test': 90, 'test_geometry': 0, 'test_height': 0, 'test_orientation_corner': 35, 'test_orientation_edge': 46, 'test_orientation_face': 9}, 'generation_wall_s': 43.87562704086304}
+schema failures: none
+  schema_pass: True
+  free_flight_pass: True
+  free_flight_max_pos_err: 0.0027026549999850102
+  free_flight_max_vel_err: 6.306066779870889e-14
+  timing_pass: True
+  timing_err_steps_median: 0.26394156924129675
+  timing_err_steps_max: 0.9569172949558435
+  replay_pass: True
+  replay_max_state_diff: 0.0
+  no_split_leakage: True
+[100/2000] 20.6s
+[200/2000] 22.7s
+[300/2000] 29.8s
+[400/2000] 42.4s
+[500/2000] 42.4s
+[600/2000] 48.9s
+[700/2000] 54.1s
+[800/2000] 58.2s
+[900/2000] 63.6s
+[1000/2000] 70.1s
+[1100/2000] 78.7s
+[1200/2000] 80.8s
+[1300/2000] 85.9s
+[1400/2000] 92.3s
+[1500/2000] 100.5s
+[1600/2000] 114.2s
+[1700/2000] 122.5s
+[1800/2000] 133.9s
+[1900/2000] 136.8s
+[2000/2000] 139.9s
+summary: {'n_episodes': 2000, 'total_steps': 2440854, 'mean_steps': 1220.427, 'termination': {'max_duration': 280, 'settled': 1720}, 'approach_modes': {1: 697, 2: 1085, 3: 218}, 'geometry_groups': 240, 'orientation_coverage': {'corner': 697, 'edge': 1085, 'face': 218}, 'split_sizes': {'train': 1189, 'val': 255, 'test': 255, 'test_geometry': 301, 'test_height': 0, 'test_orientation_corner': 89, 'test_orientation_edge': 138, 'test_orientation_face': 28}, 'generation_wall_s': 141.34351444244385}
+schema failures: none
+  schema_pass: True
+  free_flight_pass: True
+  free_flight_max_pos_err: 0.002707560000020856
+  free_flight_max_vel_err: 1.9095836023552692e-13
+  timing_pass: True
+  timing_err_steps_median: 0.25631371530911906
+  timing_err_steps_max: 0.9089905036327934
+  replay_pass: True
+  replay_max_state_diff: 0.0
+  no_split_leakage: True
+GEN_DONE

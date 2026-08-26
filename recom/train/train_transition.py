@@ -27,10 +27,12 @@ def load_encoder(path: str, device):
     return enc, cfg["latent_dim"]
 
 
-def batch_contacts(batch: dict, source: str, encoder, latent_dim: int, device) -> dict | None:
-    """Contacts for a (B,T) window from the requested source."""
+def batch_contacts(batch: dict, source: str, encoder, latent_dim: int, device, grad: bool = False, return_raw: bool = False):
+    """Contacts for a (B,T) window from the requested source.  grad=True runs the learned encoder with autograd
+    (joint fine-tuning); return_raw also returns the flat (B*T) encoder output for the retained contact loss."""
     if source == "gt":
-        return gt_contacts_from_batch(batch, latent_dim)
+        c = gt_contacts_from_batch(batch, latent_dim)
+        return (c, None) if return_raw else c
     B, T, _ = batch["states"].shape
     st = batch["states"].reshape(B * T, 13)
     he = batch["half_extents"][:, None, :].expand(B, T, 3).reshape(B * T, 3)
@@ -40,13 +42,28 @@ def batch_contacts(batch: dict, source: str, encoder, latent_dim: int, device) -
         with torch.no_grad():
             out = enc(he, st[:, 0:3], st[:, 3:7])
     else:
-        with torch.no_grad():
+        with torch.set_grad_enabled(grad):
             out = encoder(he, st[:, 0:3], st[:, 3:7])
-    c = contacts_from_encoder_output(out, st[:, 0:3])
+    c = contacts_from_encoder_output(out, st[:, 0:3], hard=not grad)
     c = {k: v.reshape(B, T, *v.shape[1:]) for k, v in c.items()}
     if latent_dim == 0:
         c.pop("latent")
-    return c
+    return (c, out) if return_raw else c
+
+
+def window_contact_loss(out: dict, batch: dict) -> torch.Tensor:
+    """Explicit contact-set loss of the encoder on a (B,T) window vs the recorded Chrono contacts (plan Sec. 13:
+    retained during joint fine-tuning so the latent cannot silently stop representing contact geometry)."""
+    from ..models.losses import contact_set_loss
+    B, T = batch["c_active"].shape[:2]
+    pos = batch["states"][..., 0:3].reshape(B * T, 3)
+    origin = torch.cat([pos[:, :2], torch.zeros_like(pos[:, 2:3])], -1)[:, None, :]
+    gt = {"active": batch["c_active"].reshape(B * T, -1), "d": batch["c_d"].reshape(B * T, -1),
+          "p_box_local": batch["c_p_box_local"].reshape(B * T, -1, 3), "p_ground_rel": batch["c_p_ground_world"].reshape(B * T, -1, 3) - origin,
+          "n": batch["c_n"].reshape(B * T, -1, 3), "n_contacts": batch["c_n_contacts"].reshape(B * T)}
+    scale = batch["half_extents"].min(-1).values[:, None].expand(B, T).reshape(B * T)
+    loss, _ = contact_set_loss(out, gt, scale)
+    return loss
 
 
 @torch.no_grad()
@@ -98,6 +115,7 @@ def main(argv=None) -> None:
     ap.add_argument("--loss", default="mse", choices=["mse", "huber"])
     ap.add_argument("--no-contact-gate", action="store_true", help="disable gating the residual by contact activation")
     ap.add_argument("--finetune-encoder", action="store_true", help="Experiment E: let gradients reach the encoder")
+    ap.add_argument("--contact-loss-weight", type=float, default=1.0, help="Experiment E: weight of the retained explicit contact loss")
     ap.add_argument("--eval-every", type=int, default=2000)
     ap.add_argument("--max-train-episodes", type=int, default=None)
     ap.add_argument("--max-eval-episodes", type=int, default=64)
@@ -158,11 +176,16 @@ def main(argv=None) -> None:
         batch = to_device(batch, device)
         full_states, full_next = batch["states"], batch["next_states"]
         win = {k: (v[:, :T] if torch.is_tensor(v) and v.dim() >= 2 and v.shape[1] == T + H else v) for k, v in batch.items()}
-        c = batch_contacts(win, a.train_contact_source, encoder, latent_dim, device) if model.contact_mode != "none" else None
+        joint = a.finetune_encoder and a.train_contact_source == "learned"
+        c, enc_out = (batch_contacts(win, a.train_contact_source, encoder, latent_dim, device, grad=joint, return_raw=True) if model.contact_mode != "none" else (None, None))
         pred = model.norm_target(model.predict_delta(win["states"], win["half_extents"], c))
         loss_1 = loss_fn(pred, model.norm_target(win["targets"]))
         loss = loss_1
         loss_r = torch.zeros((), device=device)
+        loss_c = torch.zeros((), device=device)
+        if joint and enc_out is not None:
+            loss_c = window_contact_loss(enc_out, win)
+            loss = loss + a.contact_loss_weight * loss_c
         if H > 0:
             # Experiment E: unroll H steps from the window end with predicted states and recomputed contacts
             hist_s, hist_c = win["states"], c
@@ -187,8 +210,8 @@ def main(argv=None) -> None:
         opt.step()
         step += 1
         if step % 100 == 0:
-            logger.log({"step": step, "loss": loss.item(), "loss_1step": loss_1.item(), "loss_rollout": loss_r.item(), "lr": opt.param_groups[0]["lr"], "t": time.time() - t0})
-            print(f"step {step} loss {loss.item():.5f} (1-step {loss_1.item():.5f}) {time.time() - t0:.0f}s", flush=True)
+            logger.log({"step": step, "loss": loss.item(), "loss_1step": loss_1.item(), "loss_rollout": loss_r.item(), "loss_contact": loss_c.item(), "lr": opt.param_groups[0]["lr"], "t": time.time() - t0})
+            print(f"step {step} loss {loss.item():.5f} (1-step {loss_1.item():.5f} rollout {loss_r.item():.5f} contact {loss_c.item():.4f}) {time.time() - t0:.0f}s", flush=True)
         if step % a.eval_every == 0 or step == a.steps:
             ev = one_step_eval(model, caches["val"], device, T, a.train_contact_source, encoder, latent_dim)
             logger.log({"step": step, "val_one_step": ev})
@@ -214,6 +237,9 @@ def main(argv=None) -> None:
             keys = ["pos_err@100", "pos_err@500", "pos_err_final", "rot_err_deg_final", "v_err_mean", "w_err_mean", "impact_dv_err", "impact_dw_err", "apex_err", "max_penetration_pred", "artificial_energy_max"]
             print(f"[rollout {split}/{src}] " + " ".join(f"{k}={summ[k]['median']:.4g}" for k in keys if k in summ), flush=True)
     dump_json(final, out / "final_metrics.json")
+    if encoder is not None and a.finetune_encoder:
+        ck = torch.load(a.encoder_ckpt, map_location="cpu", weights_only=False)
+        save_checkpoint(out / "encoder_finetuned.pt", encoder, ck["config"])
     save_checkpoint(out / "final.pt", model, {"contact_mode": a.contact_mode, "block_size": T, "n_layer": a.n_layer, "n_embd": a.n_embd, "latent_dim": latent_dim, "normalization": {k: v.tolist() for k, v in norm.items()}, "encoder_ckpt": a.encoder_ckpt, "gravity_prior": not a.no_gravity_prior, "gravity": g, "dt": dt, "contact_gate": not a.no_contact_gate})
 
 

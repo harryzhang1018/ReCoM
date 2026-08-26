@@ -1,0 +1,12 @@
+NVIDIA A100-SXM4-40GB, 580.159.04, 40960 MiB
+torch 2.13.0+cu130 cuda True
+CMD: python scripts/train_contact.py --data data/pilot1b --encoder analytic --out runs/expC_analytic --max-eval-episodes 120
+loaded split train: 1189 episodes in 103.0s
+loaded split val: 255 episodes in 20.4s
+loaded split test: 255 episodes in 22.2s
+loaded split test_geometry: 301 episodes in 27.0s
+encoder=analytic params=0
+[val] slot_precision=0.9998714327812195 slot_recall=0.9934417009353638 frame_precision=1.0 frame_recall=0.9914150834083557 d_mae=0.00011872213508468121 d_p95=0.0005437324289232492 point_err_median_pct_min_dim=0.0 point_err_p95_pct_min_dim=1.0392701369710267e-05 ground_point_err_median_pct_min_dim=1.4262281183619052e-05 normal_deg_median=0.0 normal_deg_p95=0.0 cardinality_acc=0.991373598575592 count_acc=0.991373598575592 ece=0.014488412521729657 n_frames=148382 uncertainty_error_corr=-0.360764495824505 first_impact_err_steps_median=0.0 first_impact_err_steps_p99=1.0 first_impact_missed=0
+[test] slot_precision=0.9998477101325989 slot_recall=0.9917275905609131 frame_precision=1.0 frame_recall=0.9904497265815735 d_mae=0.00015267803973983973 d_p95=0.0005850246525369585 point_err_median_pct_min_dim=0.0 point_err_p95_pct_min_dim=9.962609510694165e-06 ground_point_err_median_pct_min_dim=1.3191361176723149e-05 normal_deg_median=0.0 normal_deg_p95=0.0 cardinality_acc=0.9896655082702637 count_acc=0.9896655082702637 ece=0.014462473352432973 n_frames=140694 uncertainty_error_corr=-0.2650803093370828 first_impact_err_steps_median=0.0 first_impact_err_steps_p99=1.0 first_impact_missed=0
+[test_geometry] slot_precision=0.9998905658721924 slot_recall=0.991942286491394 frame_precision=1.0 frame_recall=0.9900762438774109 d_mae=0.00012756699288729578 d_p95=0.0005758664337918162 point_err_median_pct_min_dim=0.0 point_err_p95_pct_min_dim=1.2202885045553558e-05 ground_point_err_median_pct_min_dim=1.589918065292295e-05 normal_deg_median=0.0 normal_deg_p95=0.0 cardinality_acc=0.9892310500144958 count_acc=0.9892310500144958 ece=0.014940850491834884 n_frames=142911 uncertainty_error_corr=-0.12346642125795555 first_impact_err_steps_median=0.0 first_impact_err_steps_p99=1.0 first_impact_missed=0
+TRAIN_DONE

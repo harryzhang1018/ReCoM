@@ -170,6 +170,50 @@ squeue -u $USER; tail -f cluster/logs/<job>-<id>.out
 `runs/*/final_metrics.json` on the cluster and `docs/RESULTS_cluster.md` (summary job). Copy back with
 `scp -r euler:ReCoM/runs/<name>/final_metrics.json ...` or commit `docs/RESULTS_cluster.md` from the cluster.
 
+## 7c. Cluster round 1 results (2026-08-26; full tables in `results/cluster_2026-08-26/RESULTS.md`)
+
+All 9 training jobs completed (H100/A100; patch encoder 10 min, point 23 min, transition runs 6–14 min, joint E 73 min).
+Datasets regenerated on the cluster are statistically identical to the local ones (deterministic recipe).
+
+**Experiment C — contact encoders (8000 steps, K=4 set loss, pilot1b, held-out geometry `test_geometry`)**
+
+| encoder | frame recall (test / test_geo) | frame precision | d MAE | matched point err (median, % min side) | normal err (median) | first-impact timing median / p99 [steps] |
+| --- | --- | --- | --- | --- | --- | --- |
+| analytic | 0.990 / 0.990 | 1.00 | 0.15 mm | 0 | 0° | 0 / 1 |
+| patch (selected) | 0.81 / 0.88 | 0.96 | 1.0 mm | 0.006 % | 0.39° | 3 / 417 |
+| point | 0.78 / 0.83 | 0.96 | 0.8 mm | 0.005 % | 0.23° | 102 / 595 |
+
+Per category (patch, test): far_free FPR 0.000, resting recall 1.00, contact recall 0.73, first_impact recall 0.48
+(FPR 0.26), near_contact FPR 0.10. → Point/normal gates pass; the near-contact-recall and timing-p99 gates fail
+because the ~3 mm Chrono reporting boundary is only partially resolved (val recall was still rising at 8 k steps:
+0.77 → 0.84 → 0.88 → 0.86). No collapse on held-out geometry (H4 sign of life). Patch > point on recall/timing.
+
+**Experiments A/B — H1 (30 k steps, gravity prior; B with contact gate)**
+
+| | one-step dv err first impact | dw err first impact | free-flight step err | rollout impact dv err (median) | pos err @500 steps |
+| --- | --- | --- | --- | --- | --- |
+| A state-only (fixed / pilot) | 0.67 / 0.68 m/s | 4.8 / 7.0 rad/s | 7e-4 / 2.6e-3 m/s | 3.4 / 3.3 m/s | 0.10 / 0.11 m |
+| B oracle explicit (fixed / pilot), analytic contacts in loop | 0.24 / 0.29 m/s | 2.3 / 4.0 rad/s | 4e-8 (exact) | 0.62 / 0.45 m/s | 0.055 / 0.046 m |
+
+→ H1 confirmed: oracle contacts cut impact-step errors 2.5× (one-step) and 5–7× (closed loop) and make free flight
+exact. Rollouts with *recorded* contacts replayed open-loop penetrate (0.3 m) because contacts do not follow the
+predicted pose; recomputing contacts from the predicted pose (analytic) keeps penetration ≤ 1 cm. Orientation
+error at 2 s is still ~90° for every model (long resting/rocking phase; to be examined per regime).
+
+**Experiment D — learned patch contacts + frozen NeDM (trained with gt contacts)**: impact dv err 3.5–3.7 m/s,
+pos err @100 = 11–14 mm → as bad as state-only. Cause: near-boundary false positives (10 %) open the contact gate in
+free flight and first-impact misses (52 %) delay impulses. The gate design makes activation accuracy critical.
+
+**Experiment E — explicit+latent, trained on learned contacts, 8-step unrolled loss**: learned-contact rollouts reach
+the oracle level on all splits: impact dv err 0.45–0.59 m/s (B: 0.45–0.63), pos err @500 = 0.044–0.056 m (B analytic:
+0.041–0.055), max penetration 2.5 mm (B: 10 mm), also on `test_geometry` (0.45 m/s, 0.056 m). → the closed-loop
+≤10 % degradation gate is met on these metrics for held-out geometry. Caveat found afterwards: in round 1 the encoder
+received **no gradients** (`batch_contacts` ran under `no_grad`) and no contact loss was retained, so round-1 E is
+"transition trained on frozen learned contacts + unrolled loss", not joint fine-tuning. Fixed in code (true joint
+fine-tuning + `--contact-loss-weight`, fine-tuned encoder saved as `encoder_finetuned.pt`); round 2 re-runs it.
+
+Round 2 (`cluster/submit_round2.sh`): C_patch/C_point at 30 k steps → D_r2, E_r2 (joint + contact loss) → summary.
+
 ## 8. Open questions / decisions to revisit
 
 * Contact-encoder threshold for "active" is 0.5 on the logit; the analytic baseline uses margin 2 mm while Chrono

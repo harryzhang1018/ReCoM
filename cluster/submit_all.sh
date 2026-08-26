@@ -27,7 +27,6 @@ D=$(sub --dependency=afterok:$CP --job-name=expD_learned $T scripts/train_transi
 E=$(sub --dependency=afterok:$CP --job-name=expE_joint   $T scripts/train_transition.py --data data/pilot1b --contact-mode explicit+latent --train-contact-source learned --encoder-ckpt runs/expC_patch/final.pt --finetune-encoder --rollout-horizon 8 --out runs/expE_joint --steps $STEPS_T --eval-every 10000 --workers $W --eval-contact-sources learned,analytic)
 echo "D/E: $D $E"
 
-S=$(sbatch --parsable --partition=$P --dependency=afterany:$CP:$CQ:$CA:$AF:$BF:$AP:$BP:$D:$E --job-name=recom-summary --cpus-per-task=2 --mem=8G --time=00:10:00 \
-    --output=cluster/logs/%x-%j.out --wrap="source cluster/env.sh; python scripts/summarize_runs.py runs | tee docs/RESULTS_cluster.md")
+S=$(sub --dependency=afterany:$CP:$CQ:$CA:$AF:$BF:$AP:$BP:$D:$E cluster/summary.sbatch)
 echo "summary: $S"
 squeue -u $USER -o "%.10i %.14j %.9P %.2t %.10M %R" | head -20
