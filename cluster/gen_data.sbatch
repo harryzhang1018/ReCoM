@@ -8,6 +8,7 @@
 #SBATCH --time=01:00:00
 #SBATCH --output=cluster/logs/%x-%j.out
 # Generate + validate the three Study-1 datasets (deterministic; ~1 min each on 32 cores).
+set -euo pipefail
 source cluster/env.sh
 python -m pytest tests -q -x
 for c in smoke fixed1a pilot1b; do
