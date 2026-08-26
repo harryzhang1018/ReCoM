@@ -114,6 +114,7 @@ def main(argv=None) -> None:
     ap.add_argument("--no-gravity-prior", action="store_true", help="disable the known free-flight residual prior")
     ap.add_argument("--loss", default="mse", choices=["mse", "huber"])
     ap.add_argument("--no-contact-gate", action="store_true", help="disable gating the residual by contact activation")
+    ap.add_argument("--eval-only", default=None, help="path to a transition checkpoint: skip training, only evaluate")
     ap.add_argument("--finetune-encoder", action="store_true", help="Experiment E: let gradients reach the encoder")
     ap.add_argument("--contact-loss-weight", type=float, default=1.0, help="Experiment E: weight of the retained explicit contact loss")
     ap.add_argument("--eval-every", type=int, default=2000)
@@ -148,8 +149,16 @@ def main(argv=None) -> None:
     dt, g = meta0["dt"], meta0["episode"]["physics"]["gravity"]
     prior = None if a.no_gravity_prior else np.array([0.0, 0.0, -g * dt, 0.0, 0.0, 0.0])
     norm = compute_state_normalization(caches["train"], prior)
+    soft_gate = a.finetune_encoder and a.train_contact_source == "learned"
     model = BoxTransitionModel(norm, contact_mode=a.contact_mode, block_size=T, n_layer=a.n_layer, n_embd=a.n_embd, latent_dim=latent_dim, dt=dt,
-                               gravity_prior=not a.no_gravity_prior, gravity=g, contact_gate=not a.no_contact_gate).to(device)
+                               gravity_prior=not a.no_gravity_prior, gravity=g, contact_gate=not a.no_contact_gate, soft_gate=soft_gate).to(device)
+    if a.eval_only:
+        ck = torch.load(a.eval_only, map_location=device, weights_only=False)
+        model.load_state_dict(ck["model_state_dict"])
+        if a.finetune_encoder and encoder is not None and (Path(a.eval_only).parent / "encoder_finetuned.pt").exists():
+            encoder.load_state_dict(torch.load(Path(a.eval_only).parent / "encoder_finetuned.pt", map_location=device, weights_only=False)["model_state_dict"])
+        a.steps = 0
+        print(f"eval-only: loaded {a.eval_only} (soft_gate={soft_gate})", flush=True)
     loss_fn = torch.nn.functional.mse_loss if a.loss == "mse" else torch.nn.functional.huber_loss
     print(f"transition model contact_mode={a.contact_mode} params={sum(p.numel() for p in model.parameters())}", flush=True)
 
@@ -161,7 +170,7 @@ def main(argv=None) -> None:
         cat = caches["train"].episodes[e_i].category[s: s + T + H]
         if np.isin(cat, (CAT_FIRST_IMPACT, CAT_REBOUND)).any():
             w[i] = a.event_weight
-    sampler = WeightedRandomSampler(torch.from_numpy(w), num_samples=a.steps * a.batch, replacement=True, generator=torch.Generator().manual_seed(a.seed))
+    sampler = WeightedRandomSampler(torch.from_numpy(w), num_samples=max(a.steps, 1) * a.batch, replacement=True, generator=torch.Generator().manual_seed(a.seed))
     dl = DataLoader(ds, batch_size=a.batch, sampler=sampler, collate_fn=collate_dict, num_workers=a.workers, drop_last=True, persistent_workers=a.workers > 0)
     params = list(model.parameters()) + (list(encoder.parameters()) if (encoder is not None and a.finetune_encoder) else [])
     opt = torch.optim.AdamW(params, lr=a.lr, weight_decay=1e-4)
@@ -170,7 +179,7 @@ def main(argv=None) -> None:
 
     t0 = time.time()
     step = 0
-    for batch in dl:
+    for batch in (dl if a.steps > 0 else []):
         for g in opt.param_groups:
             g["lr"] = cosine_lr(step, a.steps, a.lr)
         batch = to_device(batch, device)
@@ -216,7 +225,7 @@ def main(argv=None) -> None:
             ev = one_step_eval(model, caches["val"], device, T, a.train_contact_source, encoder, latent_dim)
             logger.log({"step": step, "val_one_step": ev})
             print("  [val one-step] " + " ".join(f"{k}={v:.4g}" for k, v in ev.items()), flush=True)
-            save_checkpoint(out / "last.pt", model, {"contact_mode": a.contact_mode, "block_size": T, "n_layer": a.n_layer, "n_embd": a.n_embd, "latent_dim": latent_dim, "normalization": {k: v.tolist() for k, v in norm.items()}, "encoder_ckpt": a.encoder_ckpt, "gravity_prior": not a.no_gravity_prior, "gravity": g, "dt": dt, "contact_gate": not a.no_contact_gate})
+            save_checkpoint(out / "last.pt", model, {"contact_mode": a.contact_mode, "block_size": T, "n_layer": a.n_layer, "n_embd": a.n_embd, "latent_dim": latent_dim, "normalization": {k: v.tolist() for k, v in norm.items()}, "encoder_ckpt": a.encoder_ckpt, "gravity_prior": not a.no_gravity_prior, "gravity": g, "dt": dt, "contact_gate": not a.no_contact_gate, "soft_gate": soft_gate})
         if step >= a.steps:
             break
 
@@ -240,7 +249,7 @@ def main(argv=None) -> None:
     if encoder is not None and a.finetune_encoder:
         ck = torch.load(a.encoder_ckpt, map_location="cpu", weights_only=False)
         save_checkpoint(out / "encoder_finetuned.pt", encoder, ck["config"])
-    save_checkpoint(out / "final.pt", model, {"contact_mode": a.contact_mode, "block_size": T, "n_layer": a.n_layer, "n_embd": a.n_embd, "latent_dim": latent_dim, "normalization": {k: v.tolist() for k, v in norm.items()}, "encoder_ckpt": a.encoder_ckpt, "gravity_prior": not a.no_gravity_prior, "gravity": g, "dt": dt, "contact_gate": not a.no_contact_gate})
+    save_checkpoint(out / "final.pt", model, {"contact_mode": a.contact_mode, "block_size": T, "n_layer": a.n_layer, "n_embd": a.n_embd, "latent_dim": latent_dim, "normalization": {k: v.tolist() for k, v in norm.items()}, "encoder_ckpt": a.encoder_ckpt, "gravity_prior": not a.no_gravity_prior, "gravity": g, "dt": dt, "contact_gate": not a.no_contact_gate, "soft_gate": soft_gate})
 
 
 if __name__ == "__main__":

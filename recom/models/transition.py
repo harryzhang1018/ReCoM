@@ -51,7 +51,7 @@ class Block(nn.Module):
 class BoxTransitionModel(nn.Module):
     def __init__(self, normalization: dict, contact_mode: str = "none", block_size: int = 32, n_layer: int = 3, n_head: int = 4,
                  n_embd: int = 128, dropout: float = 0.0, latent_dim: int = 0, ctx_dim: int = 64, dt: float = 1e-3,
-                 gravity_prior: bool = True, gravity: float = 9.81, contact_gate: bool = True) -> None:
+                 gravity_prior: bool = True, gravity: float = 9.81, contact_gate: bool = True, soft_gate: bool = False) -> None:
         """contact_mode: 'none' (state-only), 'explicit' (explicit contact quantities), 'latent' (learned latent only),
         'explicit+latent'.  gravity_prior: the network predicts the residual over the known free-flight delta
         [0, 0, -g dt, 0, 0, 0] (exact for Chrono's semi-implicit Euler); normalization statistics must then be
@@ -62,6 +62,9 @@ class BoxTransitionModel(nn.Module):
         # contact_gate: multiply the predicted residual by the frame's contact activation (any slot active).
         # Exact for Chrono: a step with no reported contact is pure free flight (no contact impulse).
         self.contact_gate = contact_gate and contact_mode != "none"
+        # soft_gate: use the encoder's activation probability as the gate (only consistent for models trained
+        # jointly on soft learned contacts); otherwise the gate is the hard 0/1 active mask.
+        self.soft_gate = soft_gate
         prior = torch.tensor([0.0, 0.0, -gravity * dt, 0.0, 0.0, 0.0]) if gravity_prior else torch.zeros(6)
         self.register_buffer("prior", prior)
         for k, v in normalization.items():
@@ -121,7 +124,7 @@ class BoxTransitionModel(nn.Module):
         """(B,T,1) activation gate from the contact set (soft probability if available, else hard mask)."""
         if not self.contact_gate or contacts is None:
             return None
-        a = contacts.get("prob", contacts["active"])
+        a = contacts.get("prob", contacts["active"]) if self.soft_gate else contacts["active"]
         return a.max(dim=-1, keepdim=True).values.clamp(0, 1)
 
     def predict_delta(self, states, half_extents, contacts=None) -> torch.Tensor:
