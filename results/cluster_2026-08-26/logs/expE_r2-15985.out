@@ -1,0 +1,60 @@
+NVIDIA RTX 4000 SFF Ada Generation, 580.159.04, 20475 MiB
+torch 2.13.0+cu130 cuda True
+CMD: python scripts/train_transition.py --data data/pilot1b --contact-mode explicit+latent --train-contact-source learned --encoder-ckpt runs/expC_patch_30k/final.pt --finetune-encoder --contact-loss-weight 1.0 --rollout-horizon 8 --out runs/expE_r2_joint --steps 30000 --eval-every 10000 --workers 2 --eval-contact-sources learned,analytic
+loaded split train: 1189 episodes in 89.0s
+loaded split val: 255 episodes in 17.0s
+loaded split test: 255 episodes in 19.5s
+loaded split test_geometry: 301 episodes in 22.4s
+transition model contact_mode=explicit+latent params=641606
+step 100 loss 8.31863 (1-step 2.67477 rollout 45.95559 contact -0.1006) 77s
+step 200 loss 7.68948 (1-step 2.07259 rollout 44.25929 contact 0.0845) 134s
+step 300 loss 16.69727 (1-step 2.45347 rollout 106.75748 contact 0.8991) 192s
+step 400 loss 9.39514 (1-step 2.15628 rollout 53.87614 contact 0.5043) 249s
+step 500 loss 14.23346 (1-step 3.23832 rollout 58.35484 contact 3.7008) 306s
+step 600 loss 6.60930 (1-step 3.80427 rollout 18.07848 contact 0.5452) 363s
+step 700 loss 6.36735 (1-step 2.33216 rollout 27.55466 contact 0.5909) 420s
+step 800 loss 7.43872 (1-step 3.15736 rollout 27.98598 contact 0.7831) 478s
+step 900 loss 7.54837 (1-step 1.40157 rollout 42.98930 contact 0.7731) 535s
+step 1000 loss 12.06827 (1-step 3.93916 rollout 58.94526 contact 0.7610) 592s
+step 1100 loss 7.71418 (1-step 2.38955 rollout 36.58686 contact 0.7513) 649s
+step 1200 loss 4.16341 (1-step 2.05951 rollout 12.93176 contact 0.4874) 706s
+step 1300 loss 6.43427 (1-step 3.09122 rollout 25.18472 contact 0.1950) 764s
+step 1400 loss 5.85309 (1-step 2.49296 rollout 21.44519 contact 0.6795) 821s
+step 1500 loss 4.01332 (1-step 1.86755 rollout 13.45658 contact 0.4637) 878s
+step 1600 loss 5.52212 (1-step 1.74819 rollout 27.84783 contact 0.2930) 935s
+step 1700 loss 2.58771 (1-step 1.56909 rollout 5.10120 contact 0.3810) 992s
+step 1800 loss 5.66891 (1-step 2.79431 rollout 18.14635 contact 0.6063) 1050s
+step 1900 loss 3.51145 (1-step 1.73428 rollout 11.00597 contact 0.4014) 1107s
+step 2000 loss 6.15455 (1-step 1.58417 rollout 23.38155 contact 1.6477) 1164s
+step 2100 loss 5.76231 (1-step 2.24795 rollout 22.86794 contact 0.6559) 1221s
+step 2200 loss 5.42857 (1-step 2.23835 rollout 24.05329 contact 0.1836) 1278s
+step 2300 loss 7.38196 (1-step 2.68386 rollout 34.08628 contact 0.4373) 1336s
+step 2400 loss 4.63444 (1-step 1.35196 rollout 23.91046 contact 0.2937) 1393s
+step 2500 loss 4.80523 (1-step 1.74450 rollout 22.85836 contact 0.2034) 1450s
+step 2600 loss 2.87860 (1-step 1.47301 rollout 9.47704 contact 0.2210) 1507s
+step 2700 loss 4.27372 (1-step 1.53489 rollout 18.98992 contact 0.3651) 1564s
+step 2800 loss 6.95133 (1-step 1.75381 rollout 38.29525 contact 0.4106) 1622s
+step 2900 loss 3.32604 (1-step 1.77994 rollout 10.84766 contact 0.1901) 1679s
+step 3000 loss 4.40975 (1-step 1.52714 rollout 20.33671 contact 0.3405) 1736s
+step 3100 loss 8.46115 (1-step 1.93985 rollout 49.72939 contact 0.3051) 1793s
+step 3200 loss 3.85266 (1-step 1.17244 rollout 19.09787 contact 0.2930) 1850s
+step 3300 loss 3.85797 (1-step 0.87665 rollout 21.47060 contact 0.2975) 1907s
+step 3400 loss 2.29242 (1-step 1.31202 rollout 6.68034 contact 0.1454) 1964s
+step 3500 loss 5.95016 (1-step 1.62335 rollout 31.50465 contact 0.3887) 2021s
+step 3600 loss 6.75765 (1-step 2.28868 rollout 29.32698 contact 0.8031) 2078s
+step 3700 loss 5.06816 (1-step 1.46699 rollout 26.08669 contact 0.3403) 2135s
+step 3800 loss 2.96151 (1-step 1.41036 rollout 10.46456 contact 0.2431) 2192s
+step 3900 loss 3.86067 (1-step 1.37196 rollout 18.23880 contact 0.2089) 2249s
+step 4000 loss 2.67323 (1-step 1.03995 rollout 10.85717 contact 0.2761) 2306s
+step 4100 loss 3.45910 (1-step 2.13345 rollout 8.88778 contact 0.2147) 2363s
+step 4200 loss 2.51032 (1-step 1.18013 rollout 8.83075 contact 0.2263) 2421s
+step 4300 loss 3.87410 (1-step 1.75500 rollout 13.67083 contact 0.4102) 2478s
+step 4400 loss 6.18335 (1-step 1.30154 rollout 37.79321 contact 0.1577) 2535s
+step 4500 loss 4.25957 (1-step 0.98685 rollout 21.54887 contact 0.5791) 2592s
+step 4600 loss 3.66502 (1-step 1.64202 rollout 12.81260 contact 0.4214) 2649s
+step 4700 loss 5.99421 (1-step 3.05092 rollout 20.92164 contact 0.3281) 2706s
+step 4800 loss 1.55867 (1-step 0.87551 rollout 4.52140 contact 0.1180) 2763s
+step 4900 loss 6.12207 (1-step 1.90195 rollout 32.63826 contact 0.1403) 2820s
+step 5000 loss 5.87114 (1-step 1.51153 rollout 32.89748 contact 0.2474) 2877s
+step 5100 loss 2.57117 (1-step 1.13715 rollout 10.32501 contact 0.1434) 2935s
+[2026-08-26T15:05:05.998] error: *** JOB 15985 ON euler03 CANCELLED AT 2026-08-26T15:05:05 DUE to SIGNAL Terminated ***

@@ -214,6 +214,28 @@ fine-tuning + `--contact-loss-weight`, fine-tuned encoder saved as `encoder_fine
 
 Round 2 (`cluster/submit_round2.sh`): C_patch/C_point at 30 k steps → D_r2, E_r2 (joint + contact loss) → summary.
 
+## 7d. Cluster round 2 results (2026-08-26, partial)
+
+**Experiment C at 30 k steps** (same architecture; only longer cosine schedule):
+
+| encoder | frame recall test / test_geo | precision | d MAE | matched point err | first-impact timing median / p99 | near-contact FPR | first-impact recall |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| patch 30k | 0.958 / 0.971 | 0.98 | 0.5 mm | 0.0002 % | 0 / 29–58 steps | 4–5 % | 0.87–0.90 |
+| **point 30k** | **0.992 / 0.990** | **0.996** | 0.48 mm | 0.0001 % | **0 / 1 step** | 1 % | 0.91–0.95 |
+
+→ Longer training resolves the reporting boundary. The point encoder now passes the timing gate (median 0, p99 1)
+and is at the near-contact recall gate (99.2 % vs 99.5 % target) with no degradation on held-out geometry; the patch
+encoder lags on the activation boundary (its 12 face tokens give the decoder less spatial resolution near corners
+than the 152 surface points). **Bake-off selection for Study 1: point encoder** (patch kept as the mesh-general path).
+
+**Experiment D_r2 (frozen NeDM trained with gt contacts, evaluated with the 30k patch encoder in the loop)**:
+free flight exact (pos err @100 = 0), impact dv err 0.58–0.69 m/s vs 0.44–0.54 with analytic contacts, pos err
+@500 = 0.047–0.050 m vs 0.041–0.049, penetration 2 cm vs 1 cm, same on held-out geometry → within ~15–30 % of the
+oracle without any adaptation of the transition model (round-1 D had failed completely).
+
+Pending (jobs 16032–16035): E_r2 with true joint fine-tuning + retained contact loss (patch, 8 k steps), D/E with the
+point encoder, and the summary table (`docs/RESULTS_cluster.md` on the cluster).
+
 ## 8. Open questions / decisions to revisit
 
 * Contact-encoder threshold for "active" is 0.5 on the logit; the analytic baseline uses margin 2 mm while Chrono

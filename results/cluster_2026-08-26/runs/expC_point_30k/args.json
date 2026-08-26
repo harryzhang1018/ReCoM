@@ -1,0 +1,16 @@
+{
+  "data": "data/pilot1b",
+  "encoder": "point",
+  "out": "runs/expC_point_30k",
+  "steps": 30000,
+  "batch": 512,
+  "lr": 0.0003,
+  "d_model": 128,
+  "latent_dim": 16,
+  "eval_every": 5000,
+  "max_train_episodes": null,
+  "max_eval_episodes": 120,
+  "device": "cuda",
+  "seed": 0,
+  "workers": 2
+}
