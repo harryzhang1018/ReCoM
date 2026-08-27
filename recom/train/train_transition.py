@@ -43,7 +43,11 @@ def batch_contacts(batch: dict, source: str, encoder, latent_dim: int, device, g
             out = enc(he, st[:, 0:3], st[:, 3:7])
     else:
         with torch.set_grad_enabled(grad):
-            out = encoder(he, st[:, 0:3], st[:, 3:7])
+            if grad:
+                out = encoder(he, st[:, 0:3], st[:, 3:7])
+            else:  # chunk to bound memory (the point encoder's kNN block is ~2.5 MB per frame)
+                outs = [encoder(he[i: i + 1024], st[i: i + 1024, 0:3], st[i: i + 1024, 3:7]) for i in range(0, B * T, 1024)]
+                out = {k: torch.cat([o[k] for o in outs]) for k in outs[0] if k != "tokens"}
     c = contacts_from_encoder_output(out, st[:, 0:3], hard=not grad)
     c = {k: v.reshape(B, T, *v.shape[1:]) for k, v in c.items()}
     if latent_dim == 0:
@@ -74,8 +78,8 @@ def one_step_eval(model, cache, device, T: int, source: str, encoder, latent_dim
     if len(idx) > max_windows:
         idx = np.sort(np.random.default_rng(0).choice(idx, max_windows, replace=False))
     err_v, err_w, cats = [], [], []
-    for s in range(0, len(idx), 256):
-        batch = to_device(collate_dict([ds[i] for i in idx[s: s + 256]]), device)
+    for s in range(0, len(idx), 64):
+        batch = to_device(collate_dict([ds[i] for i in idx[s: s + 64]]), device)
         c = batch_contacts(batch, source, encoder, latent_dim, device) if model.contact_mode != "none" else None
         d = model.predict_delta(batch["states"], batch["half_extents"], c)
         e = (d - batch["targets"]).reshape(-1, 6)
