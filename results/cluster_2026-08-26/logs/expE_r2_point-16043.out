@@ -1,0 +1,30 @@
+NVIDIA RTX 4000 SFF Ada Generation, 580.159.04, 20475 MiB
+torch 2.13.0+cu130 cuda True
+CMD: python scripts/train_transition.py --data data/pilot1b --contact-mode explicit+latent --train-contact-source learned --encoder-ckpt runs/expC_point_30k/final.pt --finetune-encoder --contact-loss-weight 1.0 --rollout-horizon 8 --out runs/expE_r2_joint_point --steps 8000 --batch 64 --eval-every 4000 --workers 2 --eval-contact-sources learned,analytic
+loaded split train: 1189 episodes in 9.1s
+loaded split val: 255 episodes in 1.9s
+loaded split test: 255 episodes in 2.0s
+loaded split test_geometry: 301 episodes in 2.2s
+transition model contact_mode=explicit+latent params=641606
+[W826 16:52:15.509049158 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 318767104 bytes (free: 178716672, total: 20989804544).
+[W826 16:52:15.509180030 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 318767104 bytes (free: 178716672, total: 20989804544).
+Traceback (most recent call last):
+  File "/srv/home/hzhang699/ReCoM/scripts/train_transition.py", line 9, in <module>
+    main()
+  File "/srv/home/hzhang699/ReCoM/recom/train/train_transition.py", line 189, in main
+    c, enc_out = (batch_contacts(win, a.train_contact_source, encoder, latent_dim, device, grad=joint, return_raw=True) if model.contact_mode != "none" else (None, None))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/home/hzhang699/ReCoM/recom/train/train_transition.py", line 46, in batch_contacts
+    out = encoder(he, st[:, 0:3], st[:, 3:7])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/home/hzhang699/.conda/envs/recom/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/home/hzhang699/.conda/envs/recom/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/home/hzhang699/ReCoM/recom/models/contact_encoder.py", line 195, in forward
+    loc = self.local(torch.cat([h[:, :, None, :].expand(-1, -1, self.k_nn, -1), nb, rel], -1)).max(2).values
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 304.00 MiB. GPU 0 has a total capacity of 19.55 GiB of which 170.44 MiB is free. Including non-PyTorch memory, this process has 19.37 GiB memory in use. Of the allocated memory 19.13 GiB is allocated by PyTorch, and 49.95 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)
+TRAIN_DONE

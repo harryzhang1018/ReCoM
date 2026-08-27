@@ -7,10 +7,13 @@ Last updated: 2026-08-26 (America/Chicago). Written so the next session can pick
 * The Study-1 code base (box drop in Chrono → canonical contact schema → contact encoders → NeDM-compatible
   transition model → closed-loop rollouts) is implemented, tested (28/28 pytest), and three validated datasets exist.
 * Experiments A/B (state-only vs oracle-contact transition, fixed box) ran to completion and show the H1 sign of life.
-* Experiment C (contact encoders on the variable-geometry pilot) was **interrupted**: four trainers were launched
-  concurrently, the machine wedged (load avg ~285, GPU/driver hang, `ps`/`nvidia-smi` unresponsive) and needs a
-  reboot. Two bugs found during those runs are already fixed in the code (see §6).
-* **Next action after reboot:** run §7 commands one at a time.
+* The local box wedged on 2026-08-25 (load avg ~285, GPU/driver hang); all experiments were then run on the Euler
+  cluster (§7b) and are **complete as of 2026-08-27** — results in §7c/§7d and `results/cluster_2026-08-26/`.
+* Headline: oracle contacts make NeDM ~6× better at impacts (H1); a point-based contact encoder reproduces Chrono's
+  contacts at 99 % recall / exact timing on unseen box sizes (H2, H4); feeding it to the *frozen* NeDM matches the
+  oracle within noise (Stage D); joint fine-tuning helps only when the encoder is weak (H3 partially).
+* **Next actions:** end-of-episode orientation drift analysis (per-regime), near-contact recall 99.2 → 99.5 %
+  (threshold/calibration or more data), neural-SDF baseline, Phase 1C, NeDM-repo integration via `nedm_export`.
 
 ## 1. Environment
 
@@ -268,8 +271,29 @@ median closed-loop metrics, learned contacts vs analytic contacts recomputed fro
 flight stays exact (pos err @100 = 1e-7) because both encoders have ~0 false positives away from the ground.
 The soft-gate variant (round 2b) is what had inflated D_point to 2–3 m/s.
 
-Pending: `expE_r2_point` (joint fine-tuning with the point encoder) needs an 80 GB GPU (OOM on 40 GB / 20 GB);
-resubmitted on an H100 as job 16046 (summary 16047).
+**Experiment E_r2 with the point encoder (job 16357, euler19 A100, batch 32, 8 k steps, 66 min)** — the point
+encoder's kNN block needs ~2.5 MB/frame, so joint training needs batch ≤ 32 on 40 GB and no-grad evaluation is
+chunked (fix in `batch_contacts`). Learned-contact closed loop: impact dv err 0.64 / 0.71 m/s (test /
+test_geometry), pos err @500 = 0.062 / 0.054 m, final pos err 0.13 / 0.16 m, final rot err 78° / 90°.
+→ Slightly *worse* than the frozen-NeDM D_point (0.43 / 0.44 m/s) and than E_patch (0.48 / 0.43 m/s): with the
+point encoder already at Chrono-level accuracy, joint fine-tuning at this budget adds nothing and the smaller batch
+hurts. Joint fine-tuning helped only when the encoder was the bottleneck (round-1 8 k-step patch encoder).
+
+### Study-1 closed-loop summary (median over test episodes; impact dv err / pos err @500 / max penetration)
+
+| configuration | test | test_geometry (held-out box sizes) |
+| --- | --- | --- |
+| A  state-only NeDM | 3.4 m/s / 0.11 m / 7 cm | 3.3 m/s / 0.12 m / 5.5 cm |
+| B  oracle contacts (analytic, recomputed from predicted pose) | 0.45 m/s / 0.046 m / 1.0 cm | 0.45 m/s / 0.052 m / 0.8 cm |
+| D  learned **point** contacts + frozen NeDM (hard gate) | 0.43 m/s / 0.050 m / 1.4 cm | 0.44 m/s / 0.045 m / 1.7 cm |
+| D  learned **patch** contacts + frozen NeDM (hard gate) | 0.60 m/s / 0.045 m / 2.0 cm | 0.46 m/s / 0.039 m / 2.0 cm |
+| E  joint fine-tuning, patch | 0.48 m/s / 0.051 m / 0.8 cm | 0.43 m/s / 0.047 m / 0.4 cm |
+| E  joint fine-tuning, point | 0.64 m/s / 0.062 m / — | 0.71 m/s / 0.054 m / — |
+
+Pilot gates (plan §17): data replay ✓, sign conventions ✓, oracle benefit ✓ (H1), contact timing ✓ (point: median 0,
+p99 1 step), near-contact recall ✗ marginal (99.2 % vs 99.5 %), contact point ✓ (0.0001 % of min side), normal ✓ (0°),
+closed-loop degradation ✓ (D_point within noise of B), geometry holdout ✓ (no degradation on held-out sizes).
+Open weakness: end-of-episode orientation error ~80–95° for every model including the oracle (settling/rocking phase).
 
 ## 8. Open questions / decisions to revisit
 

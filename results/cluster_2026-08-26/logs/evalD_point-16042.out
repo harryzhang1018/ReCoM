@@ -1,0 +1,16 @@
+NVIDIA RTX 4000 SFF Ada Generation, 580.159.04, 20475 MiB
+torch 2.13.0+cu130 cuda True
+CMD: python scripts/train_transition.py --data data/pilot1b --contact-mode explicit --out runs/expD_r2_eval_point_hardgate --eval-only runs/expD_r2_learned_frozen_point/final.pt --workers 2 --encoder-ckpt runs/expC_point_30k/final.pt --eval-contact-sources analytic,learned
+loaded split train: 1189 episodes in 9.2s
+loaded split val: 255 episodes in 1.9s
+loaded split test: 255 episodes in 2.0s
+loaded split test_geometry: 301 episodes in 2.3s
+eval-only: loaded runs/expD_r2_learned_frozen_point/final.pt (soft_gate=False)
+transition model contact_mode=explicit params=640582
+[rollout val/analytic] pos_err@100=9.686e-08 pos_err@500=0.04552 pos_err_final=0.1295 rot_err_deg_final=93 v_err_mean=0.2303 w_err_mean=3.028 impact_dv_err=0.4402 impact_dw_err=6.789 apex_err=0.009121 max_penetration_pred=0.009852 artificial_energy_max=0
+[rollout val/learned] pos_err@100=9.686e-08 pos_err@500=0.04668 pos_err_final=0.1517 rot_err_deg_final=91.39 v_err_mean=0.233 w_err_mean=3.184 impact_dv_err=0.4914 impact_dw_err=7.328 apex_err=0.01746 max_penetration_pred=0.01514 artificial_energy_max=0
+[rollout test/analytic] pos_err@100=1.192e-07 pos_err@500=0.0481 pos_err_final=0.1771 rot_err_deg_final=91.24 v_err_mean=0.2764 w_err_mean=2.942 impact_dv_err=0.4497 impact_dw_err=8.066 apex_err=0.01234 max_penetration_pred=0.009216 artificial_energy_max=0
+[rollout test/learned] pos_err@100=1.192e-07 pos_err@500=0.05026 pos_err_final=0.1707 rot_err_deg_final=81.02 v_err_mean=0.2722 w_err_mean=2.984 impact_dv_err=0.4311 impact_dw_err=8.105 apex_err=0.01032 max_penetration_pred=0.01201 artificial_energy_max=0
+[rollout test_geometry/analytic] pos_err@100=1.192e-07 pos_err@500=0.04749 pos_err_final=0.1113 rot_err_deg_final=80.41 v_err_mean=0.2293 w_err_mean=2.872 impact_dv_err=0.4605 impact_dw_err=9.206 apex_err=0.01246 max_penetration_pred=0.01032 artificial_energy_max=0
+[rollout test_geometry/learned] pos_err@100=1.192e-07 pos_err@500=0.04465 pos_err_final=0.1119 rot_err_deg_final=79.35 v_err_mean=0.2297 w_err_mean=2.918 impact_dv_err=0.4383 impact_dw_err=9.219 apex_err=0.007037 max_penetration_pred=0.01022 artificial_energy_max=0
+TRAIN_DONE

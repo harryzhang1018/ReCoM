@@ -1,0 +1,97 @@
+NVIDIA A100-SXM4-40GB, 580.159.04, 40960 MiB
+torch 2.13.0+cu130 cuda True
+CMD: python scripts/train_transition.py --data data/pilot1b --contact-mode explicit+latent --train-contact-source learned --encoder-ckpt runs/expC_point_30k/final.pt --finetune-encoder --contact-loss-weight 1.0 --rollout-horizon 8 --out runs/expE_r2_joint_point --steps 8000 --batch 32 --eval-every 4000 --workers 2 --eval-contact-sources learned,analytic
+loaded split train: 1189 episodes in 110.1s
+loaded split val: 255 episodes in 24.5s
+loaded split test: 255 episodes in 26.0s
+loaded split test_geometry: 301 episodes in 29.8s
+transition model contact_mode=explicit+latent params=641606
+step 100 loss 6.19516 (1-step 2.38228 rollout 31.77742 contact -0.1593) 68s
+step 200 loss 37.45613 (1-step 5.58418 rollout 247.56093 contact 0.9268) 111s
+step 300 loss 6.99797 (1-step 3.88081 rollout 16.68950 contact 1.0310) 155s
+step 400 loss 4.35293 (1-step 1.92825 rollout 10.09134 contact 1.1633) 199s
+step 500 loss 4.76152 (1-step 4.07605 rollout 0.68831 contact 0.5994) 242s
+step 600 loss 5.26365 (1-step 3.54580 rollout 9.49251 contact 0.5313) 286s
+step 700 loss 28.25167 (1-step 1.84813 rollout 206.52310 contact 0.5881) 330s
+step 800 loss 2.69045 (1-step 1.72316 rollout 0.64880 contact 0.8862) 374s
+step 900 loss 8.11549 (1-step 4.21790 rollout 25.41629 contact 0.7206) 418s
+step 1000 loss 14.61496 (1-step 11.28962 rollout 22.33097 contact 0.5340) 461s
+step 1100 loss 3.52739 (1-step 2.38469 rollout 7.04936 contact 0.2615) 505s
+step 1200 loss 1.79743 (1-step 1.11472 rollout 1.87177 contact 0.4487) 549s
+step 1300 loss 13.50895 (1-step 2.08836 rollout 66.45329 contact 3.1139) 592s
+step 1400 loss 7.35143 (1-step 1.92558 rollout 21.96148 contact 2.6807) 636s
+step 1500 loss 105.33827 (1-step 5.30798 rollout 49.95477 contact 93.7859) 679s
+step 1600 loss 8.65493 (1-step 2.59517 rollout 40.88515 contact 0.9491) 723s
+step 1700 loss 6.47790 (1-step 2.94449 rollout 25.63088 contact 0.3295) 767s
+step 1800 loss 9.73726 (1-step 2.13226 rollout 49.86122 contact 1.3723) 810s
+step 1900 loss 2.97811 (1-step 1.42629 rollout 6.86704 contact 0.6934) 853s
+step 2000 loss 8.28883 (1-step 2.76488 rollout 35.16661 contact 1.1281) 897s
+step 2100 loss 6.35602 (1-step 0.89589 rollout 37.62363 contact 0.7572) 941s
+step 2200 loss 3.08627 (1-step 2.13549 rollout 2.68307 contact 0.6154) 984s
+step 2300 loss 4.66856 (1-step 2.51202 rollout 10.11787 contact 0.8918) 1028s
+step 2400 loss 5.67211 (1-step 1.50078 rollout 28.07069 contact 0.6625) 1071s
+step 2500 loss 3.44714 (1-step 1.45286 rollout 11.97853 contact 0.4970) 1115s
+step 2600 loss 2.00615 (1-step 0.44309 rollout 7.34930 contact 0.6444) 1158s
+step 2700 loss 1.66405 (1-step 0.64902 rollout 2.70631 contact 0.6767) 1202s
+step 2800 loss 3.40944 (1-step 2.59848 rollout 1.65281 contact 0.6044) 1245s
+step 2900 loss 10.22596 (1-step 7.73342 rollout 15.06082 contact 0.6099) 1289s
+step 3000 loss 4.89169 (1-step 3.46349 rollout 7.14514 contact 0.5351) 1332s
+step 3100 loss 2.91608 (1-step 2.07684 rollout 3.66442 contact 0.3812) 1376s
+step 3200 loss 3.51913 (1-step 1.08665 rollout 16.65178 contact 0.3510) 1419s
+step 3300 loss 19.73703 (1-step 2.91074 rollout 127.39070 contact 0.9025) 1462s
+step 3400 loss 4.59692 (1-step 2.96758 rollout 8.80487 contact 0.5287) 1506s
+step 3500 loss 2.13543 (1-step 0.26056 rollout 11.65428 contact 0.4181) 1550s
+step 3600 loss 1.84840 (1-step 0.66834 rollout 6.42681 contact 0.3767) 1593s
+step 3700 loss 2.08103 (1-step 0.62110 rollout 9.74126 contact 0.2423) 1637s
+step 3800 loss 30.53459 (1-step 3.31705 rollout 216.11444 contact 0.2032) 1680s
+step 3900 loss 2.15607 (1-step 0.23327 rollout 14.46154 contact 0.1151) 1723s
+step 4000 loss 1.31747 (1-step 0.64267 rollout 1.34708 contact 0.5064) 1767s
+  [val one-step] dv_err_mean=0.009464 dw_err_mean=0.1612 dv_err_far_free=0.001874 dw_err_far_free=0.009993 dv_err_near_contact=0.004185 dw_err_near_contact=0.05172 dv_err_first_impact=0.4148 dw_err_first_impact=4.453 dv_err_contact=0.01115 dw_err_contact=0.2097 dv_err_rebound_repeat=0.08082 dw_err_rebound_repeat=1.766 dv_err_resting=0.004198 dw_err_resting=0.1049
+step 4100 loss 2.06584 (1-step 0.59999 rollout 8.45024 contact 0.4096) 1815s
+step 4200 loss 7.24404 (1-step 0.88419 rollout 49.64219 contact 0.1546) 1858s
+step 4300 loss 2.00451 (1-step 1.92886 rollout 0.69450 contact -0.0112) 1902s
+step 4400 loss 19.75482 (1-step 2.39332 rollout 138.53729 contact 0.0443) 1946s
+step 4500 loss 5.33393 (1-step 3.93243 rollout 9.87865 contact 0.1667) 1989s
+step 4600 loss 10.70776 (1-step 4.07452 rollout 53.13632 contact -0.0088) 2033s
+step 4700 loss 2.26508 (1-step 0.85217 rollout 12.09006 contact -0.0983) 2076s
+step 4800 loss 5.00510 (1-step 4.02313 rollout 7.45286 contact 0.0504) 2120s
+step 4900 loss 1.69519 (1-step 1.20169 rollout 3.65495 contact 0.0366) 2163s
+step 5000 loss 11.90466 (1-step 4.25990 rollout 60.24454 contact 0.1142) 2206s
+step 5100 loss 4.20514 (1-step 0.45511 rollout 31.04967 contact -0.1312) 2249s
+step 5200 loss 0.95463 (1-step 0.70532 rollout 2.43629 contact -0.0552) 2292s
+step 5300 loss 4.44207 (1-step 0.57813 rollout 30.98980 contact -0.0098) 2336s
+step 5400 loss 2.88170 (1-step 0.50226 rollout 19.15454 contact -0.0149) 2379s
+step 5500 loss 1.95349 (1-step 2.11989 rollout 0.13477 contact -0.1832) 2423s
+step 5600 loss 3.96193 (1-step 3.44980 rollout 3.30360 contact 0.0992) 2466s
+step 5700 loss 2.43958 (1-step 1.05146 rollout 13.07947 contact -0.2468) 2510s
+step 5800 loss 2.66414 (1-step 0.77351 rollout 16.01219 contact -0.1109) 2553s
+step 5900 loss 1.81526 (1-step 1.06555 rollout 7.69114 contact -0.2117) 2596s
+step 6000 loss 1.49640 (1-step 0.22786 rollout 12.01726 contact -0.2336) 2639s
+step 6100 loss 3.47780 (1-step 0.43614 rollout 25.99646 contact -0.2079) 2683s
+step 6200 loss 1.32508 (1-step 0.61226 rollout 7.38248 contact -0.2100) 2726s
+step 6300 loss 1.48893 (1-step 0.57421 rollout 9.49097 contact -0.2716) 2770s
+step 6400 loss 1.38861 (1-step 1.51394 rollout 0.70871 contact -0.2139) 2813s
+step 6500 loss 4.11967 (1-step 4.11051 rollout 2.60940 contact -0.3170) 2857s
+step 6600 loss 2.93513 (1-step 0.83238 rollout 19.64758 contact -0.3532) 2900s
+step 6700 loss 3.30883 (1-step 1.46923 rollout 14.01268 contact 0.0880) 2944s
+step 6800 loss 0.90907 (1-step 0.88434 rollout 2.16647 contact -0.2461) 2987s
+step 6900 loss 23.72722 (1-step 1.16090 rollout 182.78558 contact -0.2819) 3030s
+step 7000 loss 1.45038 (1-step 0.46273 rollout 9.68841 contact -0.2234) 3074s
+step 7100 loss 0.30536 (1-step 0.28113 rollout 2.25714 contact -0.2579) 3117s
+step 7200 loss 0.69569 (1-step 0.32949 rollout 5.28777 contact -0.2948) 3161s
+step 7300 loss 1.86504 (1-step 0.78235 rollout 11.63876 contact -0.3722) 3204s
+step 7400 loss 0.91564 (1-step 0.51930 rollout 5.98632 contact -0.3520) 3247s
+step 7500 loss 2.29405 (1-step 1.15921 rollout 10.63605 contact -0.1947) 3291s
+step 7600 loss 1.03964 (1-step 0.35456 rollout 7.79535 contact -0.2893) 3334s
+step 7700 loss 1.11299 (1-step 0.34435 rollout 8.83513 contact -0.3358) 3377s
+step 7800 loss 0.24249 (1-step 0.51750 rollout 0.73642 contact -0.3671) 3420s
+step 7900 loss 2.42584 (1-step 0.64118 rollout 16.50143 contact -0.2780) 3464s
+step 8000 loss 5.08008 (1-step 0.21570 rollout 40.93636 contact -0.2527) 3508s
+  [val one-step] dv_err_mean=0.007005 dw_err_mean=0.1318 dv_err_far_free=0.0004311 dw_err_far_free=0.005689 dv_err_near_contact=0.0008018 dw_err_near_contact=0.02663 dv_err_first_impact=0.2847 dw_err_first_impact=3.626 dv_err_contact=0.01014 dw_err_contact=0.1849 dv_err_rebound_repeat=0.0597 dw_err_rebound_repeat=1.297 dv_err_resting=0.003567 dw_err_resting=0.1004
+[rollout val/learned] pos_err@100=0.0001889 pos_err@500=0.0482 pos_err_final=0.138 rot_err_deg_final=91.03 v_err_mean=0.3227 w_err_mean=2.935 impact_dv_err=0.775 impact_dw_err=8.384 apex_err=0.01678 max_penetration_pred=0.004031 artificial_energy_max=0
+[rollout val/analytic] pos_err@100=9.686e-08 pos_err@500=0.1011 pos_err_final=0.3059 rot_err_deg_final=140.6 v_err_mean=0.4327 w_err_mean=5.415 impact_dv_err=1.47 impact_dw_err=19.15 apex_err=0.01013 max_penetration_pred=0.07621 artificial_energy_max=0
+[rollout test/learned] pos_err@100=0.0001116 pos_err@500=0.06211 pos_err_final=0.1304 rot_err_deg_final=78.14 v_err_mean=0.2637 w_err_mean=2.771 impact_dv_err=0.6398 impact_dw_err=8.582 apex_err=0.01359 max_penetration_pred=0.005282 artificial_energy_max=0
+[rollout test/analytic] pos_err@100=1.192e-07 pos_err@500=0.1097 pos_err_final=0.3143 rot_err_deg_final=130.2 v_err_mean=0.4574 w_err_mean=5.511 impact_dv_err=1.639 impact_dw_err=16.09 apex_err=0.01556 max_penetration_pred=0.06342 artificial_energy_max=0
+[rollout test_geometry/learned] pos_err@100=9.211e-05 pos_err@500=0.05362 pos_err_final=0.1561 rot_err_deg_final=90.3 v_err_mean=0.2639 w_err_mean=2.723 impact_dv_err=0.7108 impact_dw_err=10.1 apex_err=0.01036 max_penetration_pred=0.004609 artificial_energy_max=0
+[rollout test_geometry/analytic] pos_err@100=1.192e-07 pos_err@500=0.09755 pos_err_final=0.2468 rot_err_deg_final=124.6 v_err_mean=0.3772 w_err_mean=5.222 impact_dv_err=1.581 impact_dw_err=19.26 apex_err=0.01617 max_penetration_pred=0.07488 artificial_energy_max=0
+TRAIN_DONE

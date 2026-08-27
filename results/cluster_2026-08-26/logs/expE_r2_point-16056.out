@@ -1,0 +1,95 @@
+NVIDIA A100-SXM4-40GB, 580.159.04, 40960 MiB
+torch 2.13.0+cu130 cuda True
+CMD: python scripts/train_transition.py --data data/pilot1b --contact-mode explicit+latent --train-contact-source learned --encoder-ckpt runs/expC_point_30k/final.pt --finetune-encoder --contact-loss-weight 1.0 --rollout-horizon 8 --out runs/expE_r2_joint_point --steps 8000 --batch 32 --eval-every 4000 --workers 2 --eval-contact-sources learned,analytic
+loaded split train: 1189 episodes in 14.7s
+loaded split val: 255 episodes in 3.1s
+loaded split test: 255 episodes in 3.2s
+loaded split test_geometry: 301 episodes in 3.6s
+transition model contact_mode=explicit+latent params=641606
+step 100 loss 6.30969 (1-step 2.38149 rollout 32.00190 contact -0.0720) 64s
+step 200 loss 36.41106 (1-step 5.61191 rollout 244.59731 contact 0.2245) 108s
+step 300 loss 7.75882 (1-step 3.90446 rollout 16.10578 contact 1.8411) 152s
+step 400 loss 3.99009 (1-step 2.01719 rollout 7.37081 contact 1.0515) 195s
+step 500 loss 4.76635 (1-step 4.08012 rollout 1.00758 contact 0.5603) 239s
+step 600 loss 5.10626 (1-step 3.65188 rollout 8.37057 contact 0.4081) 282s
+step 700 loss 29.41055 (1-step 1.84217 rollout 215.61205 contact 0.6169) 326s
+step 800 loss 3.76362 (1-step 1.71572 rollout 0.70649 contact 1.9596) 370s
+step 900 loss 8.46067 (1-step 4.38618 rollout 24.66835 contact 0.9909) 414s
+step 1000 loss 14.67844 (1-step 11.05822 rollout 22.05973 contact 0.8628) 457s
+step 1100 loss 10.17047 (1-step 2.23959 rollout 5.83034 contact 7.2021) 500s
+step 1200 loss 4.22953 (1-step 1.10668 rollout 2.67187 contact 2.7889) 544s
+step 1300 loss 11.68595 (1-step 2.01921 rollout 69.89808 contact 0.9295) 587s
+step 1400 loss 5.47858 (1-step 1.89894 rollout 24.55783 contact 0.5099) 631s
+step 1500 loss 12.98954 (1-step 5.05840 rollout 56.70570 contact 0.8429) 674s
+step 1600 loss 6.91593 (1-step 2.98210 rollout 28.67826 contact 0.3490) 718s
+step 1700 loss 11.62204 (1-step 2.20669 rollout 70.68614 contact 0.5796) 762s
+step 1800 loss 11.24553 (1-step 1.99146 rollout 69.77507 contact 0.5322) 805s
+step 1900 loss 2.93986 (1-step 1.46150 rollout 7.59242 contact 0.5293) 849s
+step 2000 loss 9.30712 (1-step 3.33838 rollout 39.36226 contact 1.0485) 893s
+step 2100 loss 6.09474 (1-step 0.71895 rollout 38.44810 contact 0.5698) 936s
+step 2200 loss 3.42102 (1-step 2.16482 rollout 3.42402 contact 0.8282) 979s
+step 2300 loss 4.37730 (1-step 2.29729 rollout 10.52977 contact 0.7638) 1023s
+step 2400 loss 7.02658 (1-step 2.09221 rollout 30.97393 contact 1.0626) 1066s
+step 2500 loss 3.15811 (1-step 1.34012 rollout 9.53620 contact 0.6260) 1110s
+step 2600 loss 2.36210 (1-step 0.56492 rollout 9.05896 contact 0.6648) 1154s
+step 2700 loss 1.49818 (1-step 0.80437 rollout 2.34216 contact 0.4010) 1197s
+step 2800 loss 7.23478 (1-step 1.60510 rollout 37.45289 contact 0.9481) 1240s
+step 2900 loss 10.60428 (1-step 7.51869 rollout 16.43127 contact 1.0317) 1284s
+step 3000 loss 3.78796 (1-step 2.58140 rollout 6.08818 contact 0.4455) 1327s
+step 3100 loss 3.11836 (1-step 2.03015 rollout 3.77954 contact 0.6158) 1371s
+step 3200 loss 3.11948 (1-step 0.70598 rollout 15.92922 contact 0.4223) 1415s
+step 3300 loss 17.92021 (1-step 2.32984 rollout 123.30391 contact 0.1774) 1458s
+step 3400 loss 4.71855 (1-step 3.35039 rollout 8.44690 contact 0.3123) 1501s
+step 3500 loss 2.60775 (1-step 0.41053 rollout 15.98215 contact 0.1994) 1545s
+step 3600 loss 1.76188 (1-step 0.89603 rollout 6.41697 contact 0.0637) 1588s
+step 3700 loss 2.29793 (1-step 0.60671 rollout 11.87534 contact 0.2068) 1631s
+step 3800 loss 36.77264 (1-step 3.32607 rollout 264.84570 contact 0.3409) 1675s
+step 3900 loss 2.07799 (1-step 0.14986 rollout 13.97800 contact 0.1809) 1719s
+step 4000 loss 1.26690 (1-step 0.61933 rollout 1.41406 contact 0.4708) 1762s
+[W826 18:09:49.718417030 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 20640169984 bytes (free: 15580069888, total: 42404806656).
+[W826 18:09:50.083395551 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 10200547328 bytes (free: 5421465600, total: 42404806656).
+[W826 18:09:50.083819885 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 10200547328 bytes (free: 5421465600, total: 42404806656).
+Traceback (most recent call last):
+  File "/srv/home/hzhang699/ReCoM/scripts/train_transition.py", line 9, in <module>
+    main()
+  File "/srv/home/hzhang699/ReCoM/recom/train/train_transition.py", line 225, in main
+    ev = one_step_eval(model, caches["val"], device, T, a.train_contact_source, encoder, latent_dim)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/home/hzhang699/.conda/envs/recom/lib/python3.12/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/home/hzhang699/ReCoM/recom/train/train_transition.py", line 79, in one_step_eval
+    c = batch_contacts(batch, source, encoder, latent_dim, device) if model.contact_mode != "none" else None
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/home/hzhang699/ReCoM/recom/train/train_transition.py", line 46, in batch_contacts
+    out = encoder(he, st[:, 0:3], st[:, 3:7])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/home/hzhang699/.conda/envs/recom/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/home/hzhang699/.conda/envs/recom/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/home/hzhang699/ReCoM/recom/models/contact_encoder.py", line 195, in forward
+    loc = self.local(torch.cat([h[:, :, None, :].expand(-1, -1, self.k_nn, -1), nb, rel], -1)).max(2).values
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/home/hzhang699/.conda/envs/recom/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/home/hzhang699/.conda/envs/recom/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/home/hzhang699/.conda/envs/recom/lib/python3.12/site-packages/torch/nn/modules/container.py", line 253, in forward
+    input = module(input)
+            ^^^^^^^^^^^^^
+  File "/srv/home/hzhang699/.conda/envs/recom/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/home/hzhang699/.conda/envs/recom/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/home/hzhang699/.conda/envs/recom/lib/python3.12/site-packages/torch/nn/modules/linear.py", line 134, in forward
+    return F.linear(input, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 9.50 GiB. GPU 0 has a total capacity of 39.49 GiB of which 5.05 GiB is free. Including non-PyTorch memory, this process has 34.43 GiB memory in use. Of the allocated memory 31.47 GiB is allocated by PyTorch, and 2.47 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)
+TRAIN_DONE
