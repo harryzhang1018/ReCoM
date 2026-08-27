@@ -1,0 +1,509 @@
+<title>ContactROM Box Drop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --bg:#f4f6f8; --card:#ffffff; --card-2:#eef1f5; --ink:#141a21; --ink-2:#4a5561; --ink-3:#7a8592;
+  --rule:#d6dce4; --rule-2:#e6eaf0; --accent:#d4511b; --accent-ink:#ffffff; --accent-soft:#fbe9e0;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#4a3aa7;
+  --good:#0f7a3d; --warn:#b26a00; --bad:#c2352b;
+  --shadow:0 1px 2px rgba(20,26,33,.06),0 8px 24px -12px rgba(20,26,33,.18);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#15181d; --card:#1d2127; --card-2:#252a31; --ink:#f0f3f7; --ink-2:#b8c1cc; --ink-3:#8993a0;
+    --rule:#333a44; --rule-2:#2a3038; --accent:#f0793d; --accent-ink:#15181d; --accent-soft:#3a2a22;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#9085e9;
+    --good:#4cc57d; --warn:#e2a03a; --bad:#ef6b62;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#15181d; --card:#1d2127; --card-2:#252a31; --ink:#f0f3f7; --ink-2:#b8c1cc; --ink-3:#8993a0;
+  --rule:#333a44; --rule-2:#2a3038; --accent:#f0793d; --accent-ink:#15181d; --accent-soft:#3a2a22;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#9085e9;
+  --good:#4cc57d; --warn:#e2a03a; --bad:#ef6b62;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--accent) 40%,transparent)}
+a:hover{border-bottom-color:var(--accent)}
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3{font-family:"Bricolage Grotesque","IBM Plex Sans",system-ui,sans-serif;text-wrap:balance;letter-spacing:-.01em;line-height:1.12;margin:0}
+h1{font-size:clamp(2.2rem,5vw,3.6rem);font-weight:700;font-variation-settings:"opsz" 96}
+h2{font-size:clamp(1.6rem,3vw,2.1rem);font-weight:700;margin-bottom:.35em}
+h3{font-size:1.2rem;font-weight:600;margin:1.6em 0 .5em}
+p{margin:0 0 1em;max-width:68ch}
+code,pre,.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+code{font-size:.9em;background:var(--card-2);padding:.1em .35em;border-radius:3px}
+pre{background:var(--card-2);border:1px solid var(--rule-2);border-radius:6px;padding:14px 16px;overflow-x:auto;font-size:.82rem;line-height:1.55;margin:0 0 1.2em}
+pre code{background:none;padding:0}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:500}
+.wrap{max-width:1120px;margin:0 auto;padding:0 clamp(16px,4vw,40px)}
+/* nav */
+.nav{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--rule-2)}
+.nav .wrap{display:flex;align-items:center;gap:22px;height:52px;overflow-x:auto}
+.nav .brand{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;white-space:nowrap;color:var(--ink);border:0}
+.nav .brand span{color:var(--accent)}
+.nav a.item{font-size:.85rem;color:var(--ink-2);border:0;white-space:nowrap;padding:4px 0}
+.nav a.item:hover{color:var(--ink)}
+.nav .spacer{flex:1}
+/* hero */
+.hero{padding:56px 0 40px;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:40px;align-items:start}
+.hero .lede{font-size:1.15rem;color:var(--ink-2);max-width:56ch;margin-top:18px}
+.hero .meta{display:flex;flex-wrap:wrap;gap:8px 22px;font-size:.85rem;color:var(--ink-3);margin-top:18px}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:8px}
+.tile{background:var(--card);border:1px solid var(--rule-2);border-radius:8px;padding:14px 16px;box-shadow:var(--shadow)}
+.tile .k{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
+.tile .v{font-family:"Bricolage Grotesque",sans-serif;font-size:2rem;font-weight:700;line-height:1.1;margin:4px 0 2px;font-variant-numeric:tabular-nums}
+.tile .v small{font-size:1rem;font-weight:500;color:var(--ink-2)}
+.tile .d{font-size:.82rem;color:var(--ink-2)}
+/* sections */
+section{padding:44px 0 8px;border-top:1px solid var(--rule-2)}
+section:first-of-type{border-top:0}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 32px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.card{background:var(--card);border:1px solid var(--rule-2);border-radius:8px;padding:18px 20px;box-shadow:var(--shadow)}
+.card h3{margin-top:0}
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:12px 16px;border-radius:0 6px 6px 0;margin:8px 0 20px;max-width:none}
+.note p{max-width:none}
+ul{padding-left:1.2em;margin:0 0 1em;max-width:70ch}
+li{margin:.25em 0}
+/* tables */
+.tbl{overflow-x:auto;margin:10px 0 24px;border:1px solid var(--rule-2);border-radius:8px;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--rule-2);vertical-align:top}
+th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:500;background:var(--card-2)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-family:"IBM Plex Mono",monospace;font-size:.84rem}
+tr:last-child td{border-bottom:0}
+td.hl{font-weight:600}
+.pill{display:inline-block;font-size:.72rem;font-weight:600;letter-spacing:.04em;padding:2px 8px;border-radius:999px;border:1px solid;line-height:1.5;white-space:nowrap}
+.pill.pass{color:var(--good);border-color:var(--good)}
+.pill.warn{color:var(--warn);border-color:var(--warn)}
+.pill.fail{color:var(--bad);border-color:var(--bad)}
+/* figures */
+figure{margin:18px 0 28px;background:var(--card);border:1px solid var(--rule-2);border-radius:8px;padding:16px 18px 12px;box-shadow:var(--shadow)}
+figure.wide{grid-column:1/-1}
+figcaption{font-size:.84rem;color:var(--ink-2);margin-top:8px;max-width:none}
+.figtitle{font-weight:600;font-size:.95rem;margin:0 0 2px}
+.figsub{font-size:.8rem;color:var(--ink-3);margin:0 0 8px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.8rem;color:var(--ink-2);margin:4px 0 6px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.chart{width:100%;height:auto;display:block;font-family:"IBM Plex Mono",monospace}
+.chart .grid line{stroke:var(--rule-2)}
+.chart .axis text{fill:var(--ink-3);font-size:11px}
+.chart .axis line,.chart .axis path{stroke:var(--rule)}
+.chart .lbl{fill:var(--ink-2);font-size:11px}
+.chart .cross{stroke:var(--ink-3);stroke-dasharray:3 3;opacity:0}
+.chart .hit{fill:transparent;cursor:crosshair}
+.tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);font-family:"IBM Plex Mono",monospace;font-size:.76rem;line-height:1.45;padding:6px 9px;border-radius:5px;opacity:0;transition:opacity .08s;z-index:20;white-space:nowrap}
+.tip b{font-weight:600}
+/* pipeline diagram */
+.pipe{display:block;width:100%;height:auto}
+.pipe .box{fill:var(--card);stroke:var(--rule)}
+.pipe .box.learn{stroke:var(--accent);stroke-width:1.5}
+.pipe text{font-family:"IBM Plex Sans",sans-serif;font-size:12px;fill:var(--ink)}
+.pipe .sub{font-size:10.5px;fill:var(--ink-3);font-family:"IBM Plex Mono",monospace}
+.pipe .arrow{stroke:var(--ink-3);fill:none;marker-end:url(#ah)}
+.pipe .tag{font-size:10px;fill:var(--accent);font-family:"IBM Plex Mono",monospace;letter-spacing:.08em}
+/* timeline of experiments */
+.exp{display:grid;grid-template-columns:52px minmax(0,1fr);gap:0 16px;margin:0 0 6px}
+.exp .l{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:1.5rem;color:var(--accent);line-height:1.2}
+.exp p{margin:0 0 14px;max-width:none}
+footer{padding:36px 0 56px;color:var(--ink-3);font-size:.84rem;border-top:1px solid var(--rule-2);margin-top:40px}
+@media (max-width:860px){.hero,.grid2{grid-template-columns:1fr}.grid3{grid-template-columns:1fr}.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<nav class="nav"><div class="wrap">
+  <a class="brand" href="#top">Contact<span>ROM</span> · Box Drop</a>
+  <a class="item" href="#overview">Overview</a>
+  <a class="item" href="#data">Data collection</a>
+  <a class="item" href="#training">Model training</a>
+  <a class="item" href="#results">Results</a>
+  <a class="item" href="#limits">Limitations</a>
+  <a class="item" href="#repro">Reproduce</a>
+  <span class="spacer"></span>
+  <a class="item" href="https://github.com/harryzhang1018/ReCoM">github.com/harryzhang1018/ReCoM</a>
+</div></nav>
+
+<div class="wrap" id="top">
+<header class="hero">
+  <div>
+    <div class="eyebrow">Study 1 · Reduced Contact Model · Project Chrono → NeDM</div>
+    <h1>Can a learned contact encoder replace collision detection in a neural simulator?</h1>
+    <p class="lede">A rigid box is dropped onto a plane in Project Chrono. A small network learns to reproduce Chrono's contact reports from geometry and pose alone; a recurrent NeDM transition model then predicts the motion from those contacts. On box sizes never seen in training, the learned contacts drive the frozen dynamics model as well as exact contacts do.</p>
+    <div class="meta"><span>Last updated 2026-08-27</span><span>PyChrono 10.0.0 · PyTorch 2.13</span><span>Compute: Euler cluster (A100 / H100)</span></div>
+  </div>
+  <div class="tiles">
+    <div class="tile"><div class="k">Recorded frames</div><div class="v">2.44<small>M</small></div><div class="d">2 000 episodes, 240 box geometries, 1 ms steps</div></div>
+    <div class="tile"><div class="k">Contact recall · unseen boxes</div><div class="v">99.0<small>%</small></div><div class="d">point encoder, 99.5 % precision, timing p99 = 1 step</div></div>
+    <div class="tile"><div class="k">Impact error, contacts vs none</div><div class="v">6.7<small>×</small></div><div class="d">closed-loop Δv error 3.3 → 0.44 m/s (oracle 0.45)</div></div>
+    <div class="tile"><div class="k">Degradation vs exact contacts</div><div class="v">≤2<small>%</small></div><div class="d">learned contacts + frozen NeDM, held-out geometry</div></div>
+  </div>
+</header>
+
+<section id="overview">
+  <div class="eyebrow">Overview</div>
+  <h2>Two modules, one auditable interface</h2>
+  <div class="grid2">
+    <div>
+      <p>Conventional simulators separate collision detection (geometry → contact manifold) from the solver (contact manifold + state → next state). ContactROM keeps that split but learns the first half. The interface between the two is an explicit, checkable set of contact tokens rather than a hidden latent, so each module can be validated on its own before they are connected.</p>
+      <p>Study 1 uses the simplest scene that exercises impacts, rebounds and resting contact — a box on a plane — so that every prediction can be compared against closed-form geometry and against Chrono's own records.</p>
+      <p><strong>Hypotheses.</strong> H1: contact information improves NeDM's impact prediction. H2: that information can be learned from geometry and pose. H3: explicit quantities plus a learned latent beat either alone. H4: the encoder generalizes to unseen box dimensions.</p>
+    </div>
+    <figure>
+      <p class="figtitle">The recurrent loop</p>
+      <p class="figsub">orange outlines = learned modules · everything else is exact</p>
+      <svg class="pipe" viewBox="0 0 520 250" role="img" aria-label="Pipeline diagram: box pose and geometry feed the contact encoder, which produces up to four contact tokens; the transition model predicts velocity change; pose is integrated exactly and fed back.">
+        <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-3)"/></marker></defs>
+        <rect class="box" x="14" y="20" width="150" height="58" rx="6"/>
+        <text x="89" y="43" text-anchor="middle">box pose + geometry</text>
+        <text class="sub" x="89" y="62" text-anchor="middle">p, q, half-extents</text>
+        <path class="arrow" d="M164,49 L200,49"/>
+        <rect class="box learn" x="202" y="20" width="150" height="58" rx="6"/>
+        <text class="tag" x="277" y="14" text-anchor="middle">E_contact</text>
+        <text x="277" y="43" text-anchor="middle">contact encoder</text>
+        <text class="sub" x="277" y="62" text-anchor="middle">surface tokens → K = 4 slots</text>
+        <path class="arrow" d="M352,49 L388,49"/>
+        <rect class="box" x="390" y="20" width="118" height="58" rx="6"/>
+        <text x="449" y="43" text-anchor="middle">contact tokens</text>
+        <text class="sub" x="449" y="62" text-anchor="middle">on/off · p · n · d · ℓ</text>
+        <path class="arrow" d="M449,78 L449,120 L277,120 L277,142"/>
+        <path class="arrow" d="M89,78 L89,120 L200,120"/>
+        <rect class="box learn" x="202" y="144" width="150" height="58" rx="6"/>
+        <text class="tag" x="277" y="138" text-anchor="middle">F_NRD</text>
+        <text x="277" y="167" text-anchor="middle">transition model</text>
+        <text class="sub" x="277" y="186" text-anchor="middle">32-step history → Δv, Δω</text>
+        <path class="arrow" d="M352,173 L388,173"/>
+        <rect class="box" x="390" y="144" width="118" height="58" rx="6"/>
+        <text x="449" y="167" text-anchor="middle">exact integration</text>
+        <text class="sub" x="449" y="186" text-anchor="middle">p += dt·v, q ← exp(dt·ω)q</text>
+        <path class="arrow" d="M449,202 L449,232 L89,232 L89,80"/>
+        <text class="sub" x="269" y="244" text-anchor="middle">next pose closes the loop</text>
+      </svg>
+      <figcaption>Contacts are computed context — recomputed from the pose at every step, never propagated as free-running state.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="data">
+  <div class="eyebrow">Data collection</div>
+  <h2>Recording Chrono's contact manifold, step by step</h2>
+  <div class="grid2">
+    <div>
+      <h3>Scene and physics</h3>
+      <p>One dynamic box (uniform density 1000 kg/m³, inertia recomputed from its dimensions) is released with zero velocity above a fixed ground block whose top face is z = 0. Everything that affects the physics is frozen for the whole study and stored with every episode so that any episode can be replayed exactly.</p>
+      <div class="tbl"><table>
+        <tr><th>Setting</th><th>Value</th></tr>
+        <tr><td>Contact method / collision</td><td>Non-smooth (NSC) · Bullet box–box</td></tr>
+        <tr><td>Solver / integrator</td><td>APGD, 100 it, tol 1e-6 · Euler implicit linearized</td></tr>
+        <tr><td>Time step / duration</td><td>1 ms · up to 2 s, early stop on settling</td></tr>
+        <tr><td>Collision envelope / margin</td><td>1 mm / 0.5 mm (contacts reported once gap ≲ 3 mm)</td></tr>
+        <tr><td>Friction / restitution</td><td>0.5 / 0.3 (min bounce speed 0.15 m/s)</td></tr>
+        <tr><td>Gravity</td><td>9.81 m/s² along −Z</td></tr>
+      </table></div>
+      <h3>What is recorded each step</h3>
+      <ul>
+        <li><strong>State</strong> before the step: position, orientation quaternion (w, x, y, z, canonical sign), linear velocity, angular velocity (world and body frame), settled flag.</li>
+        <li><strong>Raw Chrono contacts</strong> from <code>ReportAllContacts</code>: both contact points, the contact frame (X axis = normal), signed distance, effective radius, reaction force and torque in the contact frame, body identities, NSC constraint offset. Up to 8 records per frame are kept; overflow is counted, never dropped.</li>
+        <li><strong>Canonical view</strong> derived from the raw records: box = A, ground = B, normal pointing ground → box, distance &gt; 0 separated / &lt; 0 penetrating, box-side point clamped to the true half-extents, ground point projected along the normal, padded to 4 slots with a mask, plus per-frame contact count, mode (none / corner / edge / face) and the analytic corner gaps.</li>
+        <li><strong>Events</strong> per episode: first-impact step, contact runs, rebound intervals, settle step, maximum penetration.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Time alignment</h3>
+      <div class="note"><p>Contacts read after <code>DoStepDynamics(k)</code> come from the collision pass at the <em>start</em> of step k, i.e. from the pre-step pose — verified: the reported distance equals the analytic corner-to-plane gap of that pose. Every learning record is therefore <span class="mono">(state<sub>k</sub>, contacts<sub>k</sub>) → state<sub>k+1</sub></span>.</p></div>
+      <h3>Randomization</h3>
+      <div class="tbl"><table>
+        <tr><th>Variable</th><th>Distribution</th></tr>
+        <tr><td>Release clearance (lowest corner to ground)</td><td>Uniform 0.10 – 1.50 m</td></tr>
+        <tr><td>Orientation</td><td>Uniform on SO(3) (Shoemake), not Euler angles</td></tr>
+        <tr><td>Box sides (Phase 1B)</td><td>0.05 – 0.30 m, aspect ≤ 4, stratified cube / elongated / flat; 240 instances, each shared by ~8 episodes</td></tr>
+        <tr><td>Initial velocity, material</td><td>Zero / fixed (Phase 1C extension not yet run)</td></tr>
+      </table></div>
+      <p>Orientation coverage is reported rather than assumed: with a 15° rule on the world "down" direction, uniform SO(3) yields 35 % corner-first, 54 % edge-first and 11 % face-first releases (697 / 1085 / 218 episodes in the pilot).</p>
+      <h3>Settling</h3>
+      <p>A box resting on four NSC contacts shows a deterministic rocking limit cycle (|v| ≈ 3 mm/s, |ω| ≈ 0.08 rad/s, ±7 µm penetration, zero drift), so settling is detected from pose change over a 200-step window instead of velocity thresholds. 1 720 of the 2 000 pilot episodes settle before 2 s.</p>
+    </div>
+  </div>
+
+  <h3>Datasets</h3>
+  <div class="tbl"><table>
+    <tr><th>Set</th><th>Purpose</th><th class="num">Episodes</th><th class="num">Frames</th><th>Splits (episodes)</th><th>Generation</th></tr>
+    <tr><td>smoke</td><td>fixed box 0.20 × 0.15 × 0.10 m, debugging</td><td class="num">50</td><td class="num">59 k</td><td>35 / 8 / 7</td><td>2.5 s</td></tr>
+    <tr><td>fixed1a</td><td>Phase 1A — state-only vs oracle-contact NeDM</td><td class="num">600</td><td class="num">713 k</td><td>420 / 90 / 90</td><td>12 s</td></tr>
+    <tr><td class="hl">pilot1b</td><td>Phase 1B — 240 box geometries, 36 held out entirely</td><td class="num">2 000</td><td class="num">2 440 854</td><td>train 1189 / val 255 / test 255 / test-geometry 301</td><td>37 s on 32 cores, 710 MB</td></tr>
+  </table></div>
+
+  <h3>Validation that every set passes</h3>
+  <div class="grid3">
+    <div class="card"><h3>Free flight</h3><p>Pre-impact trajectory matches ballistics: velocity error 1e-13 m/s; position offset ≤ 2.7 mm, exactly the first-order lag of Chrono's semi-implicit Euler.</p></div>
+    <div class="card"><h3>First-contact timing</h3><p>First reported contact lies within one step of the analytic crossing of the proximity margin (median 0.26, max 0.91 steps).</p></div>
+    <div class="card"><h3>Replay &amp; leakage</h3><p>Re-simulating an episode from its stored configuration reproduces states and contacts with 0.0 difference; no episode or geometry group appears in two splits.</p></div>
+  </div>
+  <p style="margin-top:18px">Two Chrono behaviors had to be pinned down before the labels were trustworthy. <code>SetCollisionSystemType</code> silently resets the collision envelope to 30 mm, so it is set afterwards and asserted per body. Bullet reports the box-side contact point on an envelope-inflated shape (1 mm outward laterally, exact along the normal); the canonical labels clamp that point back onto the true box, while the raw record is kept untouched. Alternative pairings were tested and rejected: a triangle-mesh ground produces wrong normals on edges and a convex-hull box produces wrong points.</p>
+</section>
+
+<section id="training">
+  <div class="eyebrow">Model training</div>
+  <h2>A set-valued contact encoder and a NeDM-compatible transition model</h2>
+  <div class="grid2">
+    <div>
+      <h3>Contact encoder</h3>
+      <p><strong>Input</strong>: the box half-extents, its pose, and a cached surface representation of the box. No velocities — contact geometry must follow from pose alone. Tokens are expressed in a frame with world axes and origin at the box center projected onto the ground, which makes the prediction exactly invariant to sliding the box sideways.</p>
+      <p>Two surface representations were trained with identical decoders:</p>
+      <ul>
+        <li><strong>Patch encoder</strong> — the 12 triangular faces of the box as tokens (vertices, centroid, normal, area, neighbor normals, dihedral/sharp-edge flags), a shared MLP, three message-passing layers over face adjacency. This is the representation meant to extend to arbitrary meshes.</li>
+        <li><strong>Point encoder</strong> — 152 surface samples (8 corners, 48 edge points, 96 face points) with normals and a corner/edge/face tag, a shared MLP and one kNN (k = 16) local-aggregation block, PointNet++-style.</li>
+        <li><strong>Analytic baseline</strong> — closed-form corner-to-plane geometry in the same output format; the correctness reference.</li>
+      </ul>
+      <p><strong>Output</strong>: four unordered slots, each with an on/off logit, the contact point on the box (constrained inside the box), the matching ground point, a unit normal, the signed distance, a 16-d learned latent and a log-variance; plus a 0–4 cardinality head. Slots are decoded by four learned queries that cross-attend over the surface tokens (2 layers, 4 heads, 128-d).</p>
+      <p><strong>Loss</strong>: Hungarian matching of predicted slots to Chrono's contacts, then focal cross-entropy for activation, Huber on distance, L1 on both points (normalized by the smallest half-extent), cosine on normals, cross-entropy on the count, and a Gaussian likelihood for the uncertainty (log-variance bounded to keep it finite). Frames are sampled balanced across six regimes — far free flight, near-contact, first impact, in contact, rebound / re-impact, resting — otherwise 60 % of frames are free flight and "no contact" wins.</p>
+    </div>
+    <div>
+      <h3>Transition model (NeDM)</h3>
+      <p>A causal continuous-token transformer, the same design as NeDM's dynamics model: the last 32 steps of state (position, quaternion, velocities) and box size are embedded, 3 layers × 4 heads × 128-d, and the head predicts the change in velocity and angular velocity. Two exact facts of Chrono's integrator are built in: the free-flight velocity change (−g·dt) is a fixed prior the network only corrects, and position / orientation are integrated with Chrono's own semi-implicit rule (verified to 1e-15 on the data), so quaternions never drift off the unit sphere.</p>
+      <p>Contact tokens enter through a permutation-invariant adapter: per slot, the distance, normal, box point, lever arm and the relative velocity it implies (normal and tangential) go through a shared MLP, are masked by the slot's activation, sum- and max-pooled, and appended to the state token. A <strong>contact gate</strong> multiplies the network's correction by "any contact active" — exact for Chrono, where a step with no reported contact is pure free flight.</p>
+      <p>Trained with mean-squared error on normalized deltas over windows, oversampling windows that contain impacts (×4). Closed-loop evaluation primes with 32 true steps and then runs autonomously to the end of the episode, with contacts supplied by one of three sources: recorded (replayed open-loop), analytic (recomputed from the predicted pose), or the learned encoder.</p>
+      <h3>Experiments</h3>
+      <div class="exp"><div class="l">A</div><p>State-only NeDM — the baseline it must beat.</p></div>
+      <div class="exp"><div class="l">B</div><p>Oracle-contact NeDM — Chrono's contacts as input; the upper bound the interface allows.</p></div>
+      <div class="exp"><div class="l">C</div><p>Contact encoders alone, geometry held out — selects the representation.</p></div>
+      <div class="exp"><div class="l">D</div><p>Learned contacts fed to the frozen model from B — attributes any degradation to the encoder.</p></div>
+      <div class="exp"><div class="l">E</div><p>Joint fine-tuning with an 8-step unrolled loss, the explicit contact loss retained so the latent cannot stop encoding geometry.</p></div>
+    </div>
+  </div>
+  <h3>Compute</h3>
+  <p>All runs used single GPUs on the Euler cluster with SLURM dependency chains (data generation → C ∥ A/B → D, E → summary). Encoders: 8 000 steps ≈ 10 – 23 min, 30 000 steps ≈ 19 – 30 min (batch 512, CPU Hungarian matching is the bottleneck). Transition models: 30 000 steps ≈ 6 – 16 min including rollouts. Joint fine-tuning: 66 – 73 min for 8 000 steps; the point encoder's kNN block needs ~2.5 MB per frame, so joint training uses batch 32 and chunked evaluation.</p>
+</section>
+
+<section id="results">
+  <div class="eyebrow">Results</div>
+  <h2>Longer training resolves the contact boundary; learned contacts match the oracle</h2>
+
+  <div class="grid2">
+    <figure>
+      <p class="figtitle">Contact recall on validation frames during training</p>
+      <p class="figsub">fraction of Chrono-reported contact frames the encoder also flags · pilot1b</p>
+      <div class="legend"><span><i style="background:var(--s2)"></i>point encoder</span><span><i style="background:var(--s1)"></i>patch encoder</span></div>
+      <svg id="c-recall" class="chart" viewBox="0 0 520 260"></svg>
+      <figcaption>Both encoders were still improving at the original 8 000-step budget; at 30 000 steps the point encoder reaches 99.2 % (val) and stays there on unseen box sizes.</figcaption>
+    </figure>
+    <figure>
+      <p class="figtitle">Transition-model training loss, with and without contact tokens</p>
+      <p class="figsub">one-step MSE on normalized Δv, Δω · pilot1b · log scale</p>
+      <div class="legend"><span><i style="background:var(--s1)"></i>B · oracle contacts</span><span><i style="background:var(--s4)"></i>A · state only</span></div>
+      <svg id="c-loss" class="chart" viewBox="0 0 520 260"></svg>
+      <figcaption>With contacts the impact impulse is a function of the input; without them the model must infer it from pose and the loss plateaus an order of magnitude higher.</figcaption>
+    </figure>
+  </div>
+
+  <h3>Experiment C — encoders at 30 000 steps (test split / held-out geometries)</h3>
+  <div class="tbl"><table>
+    <tr><th>Encoder</th><th class="num">Frame recall</th><th class="num">Precision</th><th class="num">Distance MAE</th><th class="num">Point error</th><th class="num">Normal error</th><th class="num">First-impact timing (median / p99)</th><th class="num">Count accuracy</th></tr>
+    <tr><td>Analytic (reference)</td><td class="num">99.0 % / 99.0 %</td><td class="num">100 %</td><td class="num">0.15 mm</td><td class="num">0</td><td class="num">0°</td><td class="num">0 / 1 step</td><td class="num">99.0 %</td></tr>
+    <tr><td class="hl">Point</td><td class="num">99.2 % / 99.0 %</td><td class="num">99.5 %</td><td class="num">0.48 mm</td><td class="num">0.0001 %</td><td class="num">0.0°</td><td class="num">0 / 1 step</td><td class="num">97.8 %</td></tr>
+    <tr><td>Patch</td><td class="num">95.8 % / 97.1 %</td><td class="num">98.1 %</td><td class="num">0.52 mm</td><td class="num">0.0002 %</td><td class="num">0.0°</td><td class="num">0 / 29–58 steps</td><td class="num">96.1 %</td></tr>
+  </table></div>
+  <p>Point error is the distance between predicted and Chrono contact points after matching, as a percentage of the smallest box side. Where the encoders still differ from the reference is the reporting boundary itself: on the 600 first-impact frames the point encoder reaches 91 % recall with an 8 % false-positive rate (patch: 87 % / 24 %); far from the ground both have zero false positives and at rest both reach 100 % recall. Calibration error (ECE) is 0.045 for the point encoder.</p>
+
+  <h3>Experiment A vs B — does contact information help NeDM?</h3>
+  <div class="tbl"><table>
+    <tr><th>One-step error on the test split</th><th class="num">Free flight</th><th class="num">Near contact</th><th class="num">First impact</th><th class="num">Rebound / re-impact</th><th class="num">Resting</th></tr>
+    <tr><td>A · state-only, Δv (m/s)</td><td class="num">0.0026</td><td class="num">0.053</td><td class="num">0.685</td><td class="num">0.133</td><td class="num">0.0045</td></tr>
+    <tr><td class="hl">B · oracle contacts, Δv (m/s)</td><td class="num">0.0000</td><td class="num">0.0000</td><td class="num">0.288</td><td class="num">0.049</td><td class="num">0.0031</td></tr>
+    <tr><td>A · state-only, Δω (rad/s)</td><td class="num">0.016</td><td class="num">0.34</td><td class="num">6.96</td><td class="num">2.34</td><td class="num">0.108</td></tr>
+    <tr><td class="hl">B · oracle contacts, Δω (rad/s)</td><td class="num">0.002</td><td class="num">0.025</td><td class="num">4.05</td><td class="num">1.06</td><td class="num">0.091</td></tr>
+  </table></div>
+
+  <figure class="wide">
+    <p class="figtitle">Closed-loop impact error by contact source</p>
+    <p class="figsub">median over episodes of the error in the velocity jump across the first impact · lower is better</p>
+    <div class="legend"><span><i style="background:var(--s1)"></i>test (seen box sizes)</span><span><i style="background:var(--s2)"></i>test-geometry (36 held-out box sizes)</span></div>
+    <svg id="c-bars" class="chart" viewBox="0 0 920 300"></svg>
+    <figcaption>Autonomous rollouts primed with 32 true steps. Recorded Chrono contacts replayed open-loop are excluded here because they do not follow the predicted pose (the box sinks 0.3 m); all contact-conditioned rows recompute contacts from the predicted pose.</figcaption>
+  </figure>
+
+  <h3>Closed-loop summary (median over test episodes)</h3>
+  <div class="tbl"><table>
+    <tr><th>Configuration</th><th class="num">Impact Δv error</th><th class="num">Position error @ 0.5 s</th><th class="num">Position error @ 2 s</th><th class="num">Max penetration</th><th class="num">Held-out geometry: Δv / pos @ 0.5 s</th></tr>
+    <tr><td>A · state-only NeDM</td><td class="num">3.35 m/s</td><td class="num">0.115 m</td><td class="num">0.34 m</td><td class="num">7.1 cm</td><td class="num">3.34 m/s / 0.120 m</td></tr>
+    <tr><td>B · oracle (analytic) contacts</td><td class="num">0.45 m/s</td><td class="num">0.046 m</td><td class="num">0.13 m</td><td class="num">1.0 cm</td><td class="num">0.45 m/s / 0.052 m</td></tr>
+    <tr><td class="hl">D · learned point contacts, frozen NeDM</td><td class="num">0.43 m/s</td><td class="num">0.050 m</td><td class="num">0.17 m</td><td class="num">1.4 cm</td><td class="num">0.44 m/s / 0.045 m</td></tr>
+    <tr><td>D · learned patch contacts, frozen NeDM</td><td class="num">0.60 m/s</td><td class="num">0.045 m</td><td class="num">0.16 m</td><td class="num">2.0 cm</td><td class="num">0.46 m/s / 0.039 m</td></tr>
+    <tr><td>E · joint fine-tuning, patch</td><td class="num">0.48 m/s</td><td class="num">0.051 m</td><td class="num">0.16 m</td><td class="num">0.8 cm</td><td class="num">0.43 m/s / 0.047 m</td></tr>
+    <tr><td>E · joint fine-tuning, point</td><td class="num">0.64 m/s</td><td class="num">0.062 m</td><td class="num">0.13 m</td><td class="num">—</td><td class="num">0.71 m/s / 0.054 m</td></tr>
+  </table></div>
+  <p>Stage D is the decisive comparison: the transition model trained only on Chrono's contacts, never adapted, performs the same whether its contacts come from exact geometry or from the point encoder — on unseen box sizes as well. Joint fine-tuning helped only in round 1, when the encoder (8 000 steps) was the bottleneck; with an accurate encoder it adds nothing, and the smaller batch it forces on the point encoder hurts.</p>
+
+  <h3>Pilot gates from the study plan</h3>
+  <div class="tbl"><table>
+    <tr><th>Gate</th><th>Criterion</th><th>Result</th><th>Status</th></tr>
+    <tr><td>Data replay</td><td>states and contacts reproduced within tolerance</td><td>bit-exact (0.0)</td><td><span class="pill pass">pass</span></td></tr>
+    <tr><td>Normal / sign convention</td><td>hand-built above / touching / penetrating tests</td><td>28 / 28 tests</td><td><span class="pill pass">pass</span></td></tr>
+    <tr><td>Oracle benefit (H1)</td><td>oracle contacts clearly improve impact error</td><td>2.4× one-step, 6.7× closed loop</td><td><span class="pill pass">pass</span></td></tr>
+    <tr><td>Contact timing</td><td>median ≤ 1 step, p99 ≤ 2 steps</td><td>point: 0 / 1 step</td><td><span class="pill pass">pass</span></td></tr>
+    <tr><td>Near-contact recall</td><td>≥ 99.5 %</td><td>99.2 %</td><td><span class="pill warn">marginal</span></td></tr>
+    <tr><td>Contact point</td><td>median error ≤ 1 % of smallest side</td><td>0.0001 %</td><td><span class="pill pass">pass</span></td></tr>
+    <tr><td>Normal</td><td>median ≤ 2°</td><td>0.0°</td><td><span class="pill pass">pass</span></td></tr>
+    <tr><td>Closed-loop degradation</td><td>learned within 10 % of oracle</td><td>≤ 2 % (D, point)</td><td><span class="pill pass">pass</span></td></tr>
+    <tr><td>Geometry holdout (H4)</td><td>no catastrophic failure on unseen sizes</td><td>equal or better on 36 held-out sizes</td><td><span class="pill pass">pass</span></td></tr>
+  </table></div>
+
+  <h3>Two findings that changed the outcome</h3>
+  <div class="grid2">
+    <div class="card"><h3>The reporting boundary is the whole difficulty</h3><p>Encoders trained for 8 000 steps had zero false positives in free flight and perfect recall at rest, yet only ~50 % recall on first-impact frames: the ~3 mm threshold at which Chrono starts reporting is a sharp boundary that needs sub-millimetre resolution. With that encoder, the frozen model failed outright (impact error back to 3.5 m/s). Training 3.75× longer fixed it without any architectural change.</p></div>
+    <div class="card"><h3>Gate the impulse with a hard mask</h3><p>An early evaluation gated the transition model's correction with the encoder's activation <em>probability</em>. A model trained on hard 0/1 activations then under-applied impulses at uncertain first-impact frames (error 2 – 3 m/s). Using the thresholded mask — the same signal the model saw in training — restored oracle-level results. Soft gating is only consistent for jointly trained models.</p></div>
+  </div>
+</section>
+
+<section id="limits">
+  <div class="eyebrow">Limitations &amp; next steps</div>
+  <h2>What this study does not yet show</h2>
+  <div class="grid2">
+    <div>
+      <ul>
+        <li><strong>Long-horizon orientation.</strong> At the end of the 2 s episodes every model, the oracle included, has 80 – 95° of orientation error: the settling / rocking phase drifts. A per-regime analysis of that phase is the first open item.</li>
+        <li><strong>Near-contact recall</strong> sits at 99.2 % against a 99.5 % target; threshold calibration or more boundary data should close it.</li>
+        <li><strong>H3 is only partially tested</strong>: explicit + latent beat explicit-only when the encoder was weak, not when it was strong; a latent-only ablation has not been run.</li>
+        <li><strong>Scope</strong>: one box, one plane, one solver (NSC), fixed material, zero initial velocity. The neural-SDF baseline, Phase 1C (initial twist, material variation) and multi-body scenes are future work.</li>
+      </ul>
+    </div>
+    <div>
+      <p>The analytic baseline is faster and more accurate than either network — as expected, and by design its role is a correctness reference, not a competitor. The claim this study supports is narrower and, for the program, more important: the explicit contact-token interface is sufficient for a recurrent neural simulator, and it can be produced by a small geometry-conditioned network that generalizes across box dimensions.</p>
+      <p>The next milestone from the plan is the geometry bake-off on non-box shapes, where the patch (mesh) representation is expected to matter and the point representation to need denser sampling.</p>
+    </div>
+  </div>
+</section>
+
+<section id="repro">
+  <div class="eyebrow">Reproduce</div>
+  <h2>Everything regenerates from configs and seeds</h2>
+  <div class="grid2">
+    <div>
+<pre><code>conda create -n recom python=3.12 -y && conda activate recom
+conda install projectchrono::pychrono -c conda-forge -y
+pip install torch numpy scipy pyarrow pyyaml tqdm matplotlib pytest tensorboard
+python -m pytest tests -q                       # 28 passed
+
+python scripts/generate_dataset.py configs/pilot1b.yaml
+python scripts/validate_dataset.py data/pilot1b --replay 3
+
+# encoders (Experiment C)
+python scripts/train_contact.py --data data/pilot1b --encoder point --steps 30000 --out runs/expC_point_30k
+# transition models (A / B), then D and E
+python scripts/train_transition.py --data data/pilot1b --contact-mode none     --out runs/expA
+python scripts/train_transition.py --data data/pilot1b --contact-mode explicit --out runs/expB \
+    --eval-contact-sources gt,analytic
+python scripts/train_transition.py --data data/pilot1b --contact-mode explicit --out runs/expD \
+    --eval-only runs/expB/final.pt --encoder-ckpt runs/expC_point_30k/final.pt \
+    --eval-contact-sources analytic,learned
+python scripts/summarize_runs.py runs</code></pre>
+    </div>
+    <div>
+      <p>On the Euler cluster the same steps are wrapped as SLURM jobs (<code>cluster/submit_all.sh</code>, <code>cluster/submit_round2.sh</code>) with <code>module load conda/miniforge &amp;&amp; bootstrap-conda</code>. Per-run metrics, training curves and logs for every experiment on this page are committed under <code>results/cluster_2026-08-26/</code>; the running log of decisions and numbers is <code>docs/PROGRESS.md</code>.</p>
+      <p>The repository also exports datasets in NeDM's CSV / <code>dataset_index.json</code> layout (<code>recom/data/nedm_export.py</code>) so the contact block can be trained inside the original NeDM pipeline as <code>action_fields</code>, without changes to that code.</p>
+    </div>
+  </div>
+</section>
+
+<footer>ContactROM · Study 1 · Chrono box drop · code, data recipes and results at <a href="https://github.com/harryzhang1018/ReCoM">github.com/harryzhang1018/ReCoM</a></footer>
+</div>
+<div class="tip" id="tip"></div>
+
+<script>
+(function(){
+const NS="http://www.w3.org/2000/svg";
+const tip=document.getElementById("tip");
+function el(n,a,p){const e=document.createElementNS(NS,n);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;}
+function showTip(html,x,y){tip.innerHTML=html;tip.style.opacity=1;const w=tip.offsetWidth,h=tip.offsetHeight;let L=x+14,T=y-h-10;if(L+w>window.innerWidth-8)L=x-w-14;if(T<8)T=y+14;tip.style.left=L+"px";tip.style.top=T+"px";}
+function hideTip(){tip.style.opacity=0;}
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+function fmt(v,d){return v.toLocaleString(undefined,{maximumFractionDigits:d,minimumFractionDigits:d});}
+
+/* ---------- line chart ---------- */
+function lineChart(svg,series,opts){
+  const W=520,H=260,m={l:52,r:16,t:12,b:36};
+  const xs=series[0].pts.map(p=>p[0]);
+  const xmin=opts.xmin??Math.min(...xs),xmax=opts.xmax??Math.max(...xs);
+  const allY=series.flatMap(s=>s.pts.map(p=>p[1]));
+  let ymin=opts.ymin??Math.min(...allY),ymax=opts.ymax??Math.max(...allY);
+  const log=!!opts.log;
+  const X=v=>m.l+(v-xmin)/(xmax-xmin)*(W-m.l-m.r);
+  const Y=v=>{const a=log?Math.log10(v):v,lo=log?Math.log10(ymin):ymin,hi=log?Math.log10(ymax):ymax;return H-m.b-(a-lo)/(hi-lo)*(H-m.t-m.b);};
+  const g=el("g",{class:"grid"},svg),ax=el("g",{class:"axis"},svg);
+  const yt=opts.yticks;
+  yt.forEach(t=>{el("line",{x1:m.l,x2:W-m.r,y1:Y(t),y2:Y(t)},g);const tx=el("text",{x:m.l-8,y:Y(t)+4,"text-anchor":"end"},ax);tx.textContent=opts.yfmt(t);});
+  opts.xticks.forEach(t=>{const tx=el("text",{x:X(t),y:H-m.b+18,"text-anchor":"middle"},ax);tx.textContent=opts.xfmt(t);});
+  el("line",{x1:m.l,x2:W-m.r,y1:H-m.b,y2:H-m.b},ax);
+  const xl=el("text",{x:(m.l+W-m.r)/2,y:H-4,"text-anchor":"middle",class:"lbl"},svg);xl.textContent=opts.xlabel;
+  const yl=el("text",{x:12,y:m.t+2,class:"lbl"},svg);yl.textContent=opts.ylabel;
+  series.forEach(s=>{
+    const d=s.pts.map((p,i)=>(i?"L":"M")+X(p[0]).toFixed(1)+","+Y(p[1]).toFixed(1)).join(" ");
+    el("path",{d,fill:"none",stroke:s.color,"stroke-width":2,"stroke-linejoin":"round","stroke-linecap":"round"},svg);
+    const last=s.pts[s.pts.length-1];
+    el("circle",{cx:X(last[0]),cy:Y(last[1]),r:4,fill:s.color,stroke:css("--card"),"stroke-width":2},svg);
+    const lb=el("text",{x:X(last[0])-6,y:Y(last[1])+(s.labelDy||-9),"text-anchor":"end",class:"lbl","font-weight":"600"},svg);lb.textContent=s.name+" "+opts.yfmt(last[1]);
+  });
+  const cross=el("line",{class:"cross",y1:m.t,y2:H-m.b},svg);
+  const dots=series.map(s=>el("circle",{r:4.5,fill:s.color,stroke:css("--card"),"stroke-width":2,opacity:0},svg));
+  const hit=el("rect",{class:"hit",x:m.l,y:m.t,width:W-m.l-m.r,height:H-m.t-m.b},svg);
+  function nearest(px){let best=0,bd=1e9;xs.forEach((x,i)=>{const d=Math.abs(X(x)-px);if(d<bd){bd=d;best=i;}});return best;}
+  hit.addEventListener("mousemove",e=>{
+    const r=svg.getBoundingClientRect();const px=(e.clientX-r.left)/r.width*W;const i=nearest(px);
+    cross.setAttribute("x1",X(xs[i]));cross.setAttribute("x2",X(xs[i]));cross.setAttribute("opacity",1);
+    let html="<b>"+opts.xfmt(xs[i])+" "+opts.xunit+"</b>";
+    series.forEach((s,k)=>{const p=s.pts[i];if(!p)return;dots[k].setAttribute("cx",X(p[0]));dots[k].setAttribute("cy",Y(p[1]));dots[k].setAttribute("opacity",1);html+="<br>"+s.name+": "+opts.yfmt(p[1]);});
+    showTip(html,e.clientX,e.clientY);
+  });
+  hit.addEventListener("mouseleave",()=>{cross.setAttribute("opacity",0);dots.forEach(d=>d.setAttribute("opacity",0));hideTip();});
+}
+
+lineChart(document.getElementById("c-recall"),[
+  {name:"point",color:css("--s2"),pts:[[5000,0.7669],[10000,0.8865],[15000,0.971],[20000,0.9888],[25000,0.9938],[30000,0.9919]],labelDy:-10},
+  {name:"patch",color:css("--s1"),pts:[[5000,0.8603],[10000,0.9116],[15000,0.8657],[20000,0.9574],[25000,0.9658],[30000,0.974]],labelDy:16}
+],{xmin:0,xmax:30000,ymin:0.6,ymax:1.0,yticks:[0.6,0.7,0.8,0.9,1.0],yfmt:v=>(v*100).toFixed(0)+" %",xticks:[0,10000,20000,30000],xfmt:v=>(v/1000)+"k",xunit:"steps",xlabel:"training steps",ylabel:"recall"});
+
+lineChart(document.getElementById("c-loss"),[
+  {name:"B oracle",color:css("--s1"),pts:[[100,2.1396],[2100,0.8756],[4100,0.687],[6100,0.2981],[8100,0.2176],[10100,0.1667],[12100,0.1073],[14100,0.0677],[16100,0.0339],[18100,0.0634],[20100,0.0329],[22100,0.0404],[24100,0.0209],[26100,0.0283],[28100,0.029]],labelDy:16},
+  {name:"A state-only",color:css("--s4"),pts:[[100,2.2282],[2100,2.4532],[4100,2.9949],[6100,2.8236],[8100,2.2054],[10100,2.1336],[12100,1.2909],[14100,1.717],[16100,0.9723],[18100,1.1109],[20100,0.571],[22100,0.7493],[24100,0.4231],[26100,0.5811],[28100,0.4171]],labelDy:-10}
+],{xmin:0,xmax:30000,ymin:0.01,ymax:4,log:true,yticks:[0.01,0.1,1],yfmt:v=>v<1?v.toFixed(2):v.toFixed(0),xticks:[0,10000,20000,30000],xfmt:v=>(v/1000)+"k",xunit:"steps",xlabel:"training steps",ylabel:"loss (normalized MSE)"});
+
+/* ---------- grouped bar chart ---------- */
+(function(){
+  const svg=document.getElementById("c-bars"),W=920,H=300,m={l:46,r:16,t:16,b:64};
+  const cats=[
+    {n:"A · state-only",v:[3.35,3.34]},
+    {n:"B · oracle contacts",v:[0.45,0.45]},
+    {n:"D · point, frozen",v:[0.43,0.44]},
+    {n:"D · patch, frozen",v:[0.60,0.46]},
+    {n:"E · joint, patch",v:[0.48,0.43]},
+    {n:"E · joint, point",v:[0.64,0.71]}];
+  const cols=[css("--s1"),css("--s2")],names=["test","held-out geometry"];
+  const ymax=3.6;const Y=v=>H-m.b-v/ymax*(H-m.t-m.b);
+  const g=el("g",{class:"grid"},svg),ax=el("g",{class:"axis"},svg);
+  [0,1,2,3].forEach(t=>{el("line",{x1:m.l,x2:W-m.r,y1:Y(t),y2:Y(t)},g);const tx=el("text",{x:m.l-8,y:Y(t)+4,"text-anchor":"end"},ax);tx.textContent=t.toFixed(1);});
+  el("line",{x1:m.l,x2:W-m.r,y1:Y(0),y2:Y(0)},ax);
+  const yl=el("text",{x:8,y:m.t-2,class:"lbl"},svg);yl.textContent="Δv error (m/s)";
+  const gw=(W-m.l-m.r)/cats.length,bw=Math.min(34,gw*0.28);
+  cats.forEach((c,ci)=>{
+    const cx=m.l+gw*(ci+0.5);
+    const nx=el("text",{x:cx,y:H-m.b+18,"text-anchor":"middle",class:"lbl"},svg);nx.textContent=c.n;
+    c.v.forEach((v,si)=>{
+      const x=cx-bw-1+si*(bw+2);
+      const r=el("rect",{x,y:Y(v),width:bw,height:Y(0)-Y(v),fill:cols[si],rx:3},svg);
+      el("rect",{x,y:Y(0)-2,width:bw,height:2,fill:cols[si]},svg);
+      const vl=el("text",{x:x+bw/2,y:Y(v)-5,"text-anchor":"middle",class:"lbl","font-weight":"600"},svg);vl.textContent=v.toFixed(2);
+      const hit=el("rect",{class:"hit",x:x-3,y:m.t,width:bw+6,height:H-m.t-m.b},svg);
+      hit.addEventListener("mousemove",e=>{r.setAttribute("opacity",.8);showTip("<b>"+c.n+"</b><br>"+names[si]+": "+v.toFixed(2)+" m/s",e.clientX,e.clientY);});
+      hit.addEventListener("mouseleave",()=>{r.setAttribute("opacity",1);hideTip();});
+    });
+  });
+})();
+})();
+</script>
