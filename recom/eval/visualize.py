@@ -67,7 +67,7 @@ def save_worst_frames(encoder, cache, device, out_path: str, n_frames: int = 6, 
         score = pe + 0.05 * miss
         for i, it in enumerate(chunk):
             errs.append(float(score[i]))
-            items.append((it, {k: v[i].cpu() for k, v in out.items() if k != "tokens"}, {k: v[i].cpu() for k, v in gt.items()}))
+            items.append((it, {k: v[i].cpu() for k, v in out.items() if k not in ("tokens", "slot_embedding")}, {k: v[i].cpu() for k, v in gt.items()}))
     order = np.argsort(errs)[::-1][:n_frames]
     fig = plt.figure(figsize=(4 * n_frames, 4))
     rows = []

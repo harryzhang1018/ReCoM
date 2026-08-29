@@ -58,7 +58,7 @@ def test_point_token_permutation_invariance():
     with torch.no_grad():
         a, b = m(HE, pos, q, tok), m(HE, pos, q, tok_p)
     for k in ("logit", "p_box_local", "d"):
-        assert torch.allclose(a[k], b[k], atol=1e-4), k
+        assert torch.allclose(a[k], b[k], atol=5e-4), k   # float32 kNN/attention reordering noise is ~1e-4
 
 
 def test_analytic_encoder_matches_numpy_contract():
@@ -102,3 +102,23 @@ def test_transition_integration_matches_chrono_rule():
     assert torch.allclose(s1[1, 6], torch.tensor(np.sin(0.5 * 2.0 * 1e-3)).float())
     out = m(torch.zeros(2, 8, 13), torch.tensor([[0.1, 0.075, 0.05]] * 2))
     assert out.shape == (2, 8, 6)
+
+
+@pytest.mark.parametrize("cls", [PatchContactEncoder, PointContactEncoder])
+def test_slot_embedding_exposed_and_inert(cls):
+    """ED1: the post-attention slot query is returned and does not change the loss or the adapter contract."""
+    from recom.train.rollout import contacts_from_encoder_output
+    m = cls(d_model=32).eval()
+    pos, q = _poses()
+    with torch.no_grad():
+        out = m(HE, pos, q)
+    assert out["slot_embedding"].shape == (4, K_SLOTS, 32)
+    B = 4
+    gt = {"active": torch.ones(B, K_SLOTS), "d": torch.zeros(B, K_SLOTS), "p_box_local": torch.zeros(B, K_SLOTS, 3), "p_ground_rel": torch.zeros(B, K_SLOTS, 3),
+          "n": torch.tensor([0.0, 0, 1]).expand(B, K_SLOTS, 3), "n_contacts": torch.full((B,), K_SLOTS)}
+    scale = HE.min(-1).values
+    l1, _ = contact_set_loss(out, gt, scale)
+    l2, _ = contact_set_loss({k: v for k, v in out.items() if k != "slot_embedding"}, gt, scale)
+    assert torch.equal(l1, l2)
+    c = contacts_from_encoder_output(out, pos)
+    assert set(c) == {"active", "d", "n", "p_box_local", "latent", "prob", "slot_embedding"}

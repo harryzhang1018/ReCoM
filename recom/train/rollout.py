@@ -13,7 +13,8 @@ import torch
 
 from ..config import K_SLOTS
 from ..data.dataset import CAT_NAMES, EpisodeArrays
-from ..eval.metrics import rollout_errors
+from ..data.impulse_targets import PHYS_KEYS
+from ..eval.metrics import rollout_errors, settled_face_np, symmetry_rot_err_deg_np
 from ..geometry.box_plane_analytic import CORNER_SIGNS
 from ..geometry.transforms import quat_to_rotmat
 from ..models.analytic_baseline import AnalyticBoxPlaneEncoder
@@ -25,15 +26,24 @@ def contacts_from_encoder_output(out: dict[str, torch.Tensor], pos: torch.Tensor
     """Encoder output (B,K,...) -> adapter contact dict (B,K,...)."""
     prob = torch.sigmoid(out["logit"])
     active = (prob > threshold).float() if hard else prob
-    return {"active": active, "d": out["d"], "n": out["n"], "p_box_local": out["p_box_local"], "latent": out["latent"], "prob": prob}
+    c = {"active": active, "d": out["d"], "n": out["n"], "p_box_local": out["p_box_local"], "latent": out["latent"], "prob": prob}
+    if "slot_embedding" in out:
+        c["slot_embedding"] = out["slot_embedding"]
+    return c
 
 
 class ContactSource:
-    def __init__(self, kind: str, encoder=None, margin: float = 0.002, latent_dim: int = 0) -> None:
+    """Contact geometry (and, with a decoder, the contact wrench) recomputed from a state.
+
+    decoder: optional ContactImpulseDecoder; when given, the returned dict also carries wrench (B,6), dv_c, dL, j_slot
+    (needs `phys`).  wrench_ablation 'zero' / 'shuffle' (roll across the batch) are evaluation-only ablations."""
+
+    def __init__(self, kind: str, encoder=None, margin: float = 0.002, latent_dim: int = 0, decoder=None, wrench_ablation: str = "none") -> None:
         self.kind, self.encoder, self.latent_dim = kind, encoder, latent_dim
         self.analytic = AnalyticBoxPlaneEncoder(margin=margin, latent_dim=max(latent_dim, 1))
+        self.decoder, self.wrench_ablation = decoder, wrench_ablation
 
-    def __call__(self, state: torch.Tensor, half_extents: torch.Tensor, gt_contacts: dict | None = None) -> dict[str, torch.Tensor]:
+    def geometry(self, state: torch.Tensor, half_extents: torch.Tensor, gt_contacts: dict | None = None) -> dict[str, torch.Tensor]:
         if self.kind == "gt":
             assert gt_contacts is not None
             c = dict(gt_contacts)
@@ -46,6 +56,28 @@ class ContactSource:
         if self.kind == "analytic":
             c["latent"] = torch.zeros(*c["active"].shape, max(self.latent_dim, 1), device=state.device)[..., : self.latent_dim] if self.latent_dim else c["latent"][..., :0]
         return c
+
+    def __call__(self, state: torch.Tensor, half_extents: torch.Tensor, gt_contacts: dict | None = None, phys: dict | None = None) -> dict[str, torch.Tensor]:
+        c = self.geometry(state, half_extents, gt_contacts)
+        if self.decoder is not None:
+            assert phys is not None, "a ContactSource with a decoder needs the physical parameters"
+            c = attach_wrench(c, state, half_extents, phys, self.decoder, self.wrench_ablation)
+        return c
+
+
+def attach_wrench(c: dict[str, torch.Tensor], state: torch.Tensor, half_extents: torch.Tensor, phys: dict, decoder, ablation: str = "none") -> dict[str, torch.Tensor]:
+    """Run the impulse decoder on a contact dict (leading dims (B,) or (B,T)) and add wrench / dv_c / dL / j_slot."""
+    d = decoder(c, state, half_extents, phys)
+    c = dict(c)
+    for k in ("wrench", "dv_c", "dL", "j_slot"):
+        c[k] = d[k]
+    if ablation == "zero":
+        c["wrench"] = torch.zeros_like(c["wrench"])
+    elif ablation == "shuffle":
+        c["wrench"] = torch.roll(c["wrench"], 1, dims=0)
+    elif ablation != "none":
+        raise ValueError(ablation)
+    return c
 
 
 def _stack_episodes(episodes: list[EpisodeArrays], device) -> dict:
@@ -65,7 +97,8 @@ def _stack_episodes(episodes: list[EpisodeArrays], device) -> dict:
         cats[i, :n] = ep.category
         he[i] = torch.from_numpy(ep.half_extents)
         lengths[i] = n
-    return {"states": states.to(device), "contacts": {k: v.to(device) for k, v in contacts.items()}, "cats": cats, "half_extents": he.to(device), "lengths": lengths, "N": N}
+    phys = {k: torch.stack([torch.from_numpy(ep.phys[k]) for ep in episodes]).to(device) for k in PHYS_KEYS}
+    return {"states": states.to(device), "contacts": {k: v.to(device) for k, v in contacts.items()}, "cats": cats, "half_extents": he.to(device), "lengths": lengths, "N": N, "phys": phys}
 
 
 @torch.no_grad()
@@ -74,19 +107,19 @@ def rollout_batch(model, source: ContactSource, episodes: list[EpisodeArrays], d
     model.eval()
     T = T or model.block_size
     D = _stack_episodes(episodes, device)
-    S, C, he, N = D["states"], D["contacts"], D["half_extents"], D["N"]
+    S, C, he, N, phys = D["states"], D["contacts"], D["half_extents"], D["N"], D["phys"]
     B = S.shape[0]
     pred = S.clone()
     hist_s = S[:, :T].clone()
     gt_c = lambda t: {k: v[:, t] for k, v in C.items()}  # noqa: E731
-    hist_c = [source(hist_s[:, t], he, gt_c(t)) for t in range(T)]
+    hist_c = [source(hist_s[:, t], he, gt_c(t), phys) for t in range(T)]
     keys = list(hist_c[0].keys())
     hist_c = {k: torch.stack([c[k] for c in hist_c], 1) for k in keys}
     for t in range(T - 1, N):
         delta = model.predict_delta(hist_s, he, hist_c if model.contact_mode != "none" else None)[:, -1]
         s_next = model.integrate(hist_s[:, -1], delta)
         pred[:, t + 1] = s_next
-        c_next = source(s_next, he, gt_c(min(t + 1, N - 1)))
+        c_next = source(s_next, he, gt_c(min(t + 1, N - 1)), phys)
         hist_s = torch.cat([hist_s[:, 1:], s_next[:, None]], 1)
         hist_c = {k: torch.cat([hist_c[k][:, 1:], c_next[k][:, None]], 1) for k in keys}
     return pred.cpu().numpy()
@@ -147,16 +180,30 @@ def episode_rollout_metrics(pred: np.ndarray, ep: EpisodeArrays, T: int, impact_
     res["artificial_energy_max"] = float(np.maximum.accumulate(E_pr).max() - E_pr[0]) if len(E_pr) else 0.0
     res["energy_gt_initial"] = float(E_gt[0])
     res["final_rot_err_deg"] = float(err["rot_err_deg"][-1])
+    # orientation modulo the box symmetries and the settled face (a box may land on a different, equally valid face)
+    res["sym_rot_err_deg_final"] = float(symmetry_rot_err_deg_np(pr[n, 3:7], gt[n, 3:7], "d2"))
+    res["sym_rot_err_deg_final_oct"] = float(symmetry_rot_err_deg_np(pr[n, 3:7], gt[n, 3:7], "octahedral"))
+    fp, fg = int(settled_face_np(pr[n, 3:7])), int(settled_face_np(gt[n, 3:7]))
+    res["settled_face_pred"], res["settled_face_gt"], res["settled_face_match"] = fp, fg, float(fp == fg)
+    res["final_speed_err"] = float(abs(np.linalg.norm(pr[n, 7:10]) - np.linalg.norm(gt[n, 7:10])))
+    res["final_ang_speed_err"] = float(abs(np.linalg.norm(pr[n, 10:13]) - np.linalg.norm(gt[n, 10:13])))
+    res["final_height_err"] = float(abs(pr[n, 2] - gt[n, 2]))
     return res
 
 
 def summarize_rollouts(rows: list[dict]) -> dict:
+    """Per-metric mean / median / p90 over episodes.  Non-finite values (diverged rollouts) are excluded from the statistics
+    and counted in `n_diverged` (per metric) and in the top-level `diverged_episodes`."""
     keys = sorted({k for r in rows for k in r if isinstance(r[k], (int, float)) and k != "n_steps"})
     out = {}
     for k in keys:
         vals = np.array([r[k] for r in rows if k in r], dtype=np.float64)
-        if len(vals):
-            out[k] = {"mean": float(vals.mean()), "median": float(np.median(vals)), "p90": float(np.percentile(vals, 90)), "n": int(len(vals))}
+        fin = np.isfinite(vals)
+        if fin.any():
+            v = vals[fin]
+            out[k] = {"mean": float(v.mean()), "median": float(np.median(v)), "p90": float(np.percentile(v, 90)), "n": int(len(v)), "n_diverged": int((~fin).sum())}
+    out["diverged_episodes"] = {"mean": float(np.mean([not np.isfinite(r.get("pos_err_final", 0.0)) for r in rows])) if rows else 0.0, "median": 0.0, "p90": 0.0,
+                               "n": int(sum(not np.isfinite(r.get("pos_err_final", 0.0)) for r in rows))}
     return out
 
 

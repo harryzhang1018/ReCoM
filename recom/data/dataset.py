@@ -7,13 +7,14 @@ Both are built from an in-memory `EpisodeCache` (float32) so that random access 
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 import torch
 from torch.utils.data import Dataset, WeightedRandomSampler
 
 from ..config import K_SLOTS
+from .impulse_targets import PHYS_KEYS, gyro_dw_world, impulse_targets_from_record, phys_arrays
 from .schema import EpisodeRecord
 from .storage import load_episode
 
@@ -67,6 +68,8 @@ class EpisodeArrays:
     category: np.ndarray                # (N,)
     events: dict
     meta: dict
+    impulse: dict[str, np.ndarray] = field(default_factory=dict)   # mass-normalized wrench labels (N, ...), see impulse_targets
+    phys: dict[str, np.ndarray] = field(default_factory=dict)      # PHYS_KEYS as float32 arrays (0-d or (3,))
 
     @property
     def n_steps(self) -> int:
@@ -98,6 +101,8 @@ def episode_to_arrays(rec: EpisodeRecord) -> EpisodeArrays:
         category=frame_categories(rec),
         events=rec.events,
         meta=rec.meta,
+        impulse=impulse_targets_from_record(rec),
+        phys=phys_arrays(rec.meta),
     )
 
 
@@ -139,7 +144,36 @@ class TransitionWindowDataset(Dataset):
         }
         for k, v in ep.contact.items():
             item["c_" + k] = torch.from_numpy(np.ascontiguousarray(v[s: s + T]))
+        for k, v in ep.impulse.items():
+            item[k] = torch.from_numpy(np.ascontiguousarray(v[s: s + T]))
+        for k in PHYS_KEYS:
+            item[k] = torch.from_numpy(ep.phys[k])
         return item
+
+
+class ImpulseFrameDataset(TransitionWindowDataset):
+    """Frame-level view (T = 1 windows) for impulse-decoder pretraining; same keys as TransitionWindowDataset with a
+    leading time axis of length 1, so the encoder/decoder batch code is shared.  `categories` restricts the frames."""
+
+    def __init__(self, cache: EpisodeCache, categories: list[int] | None = None) -> None:
+        super().__init__(cache, T=1, stride=1)
+        if categories is not None:
+            self.index = [(e, k) for e, k in self.index if cache.episodes[e].category[k] in categories]
+        self.categories = np.array([cache.episodes[e].category[k] for e, k in self.index], dtype=np.int64)
+
+    def balanced_sampler(self, num_samples: int, seed: int = 0, weights: dict[int, float] | None = None) -> WeightedRandomSampler:
+        """Inverse-frequency sampling over categories, optionally scaled by `weights` {category: factor}."""
+        counts = np.bincount(self.categories, minlength=len(CAT_NAMES)).astype(np.float64)
+        w = np.where(counts > 0, 1.0 / np.maximum(counts, 1), 0.0)
+        if weights:
+            for c, f in weights.items():
+                w[c] *= f
+        g = torch.Generator().manual_seed(seed)
+        return WeightedRandomSampler(torch.from_numpy(w[self.categories]), num_samples=num_samples, replacement=True, generator=g)
+
+    def category_counts(self) -> dict[str, int]:
+        c = np.bincount(self.categories, minlength=len(CAT_NAMES))
+        return {CAT_NAMES[i]: int(c[i]) for i in range(len(CAT_NAMES))}
 
 
 class ContactQueryDataset(Dataset):
@@ -188,13 +222,33 @@ def collate_dict(batch: list[dict[str, torch.Tensor]]) -> dict[str, torch.Tensor
     return {k: torch.stack([b[k] for b in batch]) for k in batch[0]}
 
 
-def compute_state_normalization(cache: EpisodeCache, prior: np.ndarray | None = None) -> dict[str, np.ndarray]:
-    """Per-channel z-score statistics over the train split; `prior` (6,) is subtracted from the targets."""
+def gyro_prior_episode(ep: EpisodeArrays) -> np.ndarray:
+    """Exact torque-free delta omega_world (N,3) for every step of an episode (from the pre-step state)."""
+    st = ep.state[:-1].astype(np.float64)
+    return gyro_dw_world(st[:, 3:7], st[:, 10:13], ep.phys["inertia_diag_over_m"].astype(np.float64), float(ep.meta["dt"]))
+
+
+def compute_state_normalization(cache: EpisodeCache, prior: np.ndarray | None = None, gyro: bool = False) -> dict[str, np.ndarray]:
+    """Per-channel z-score statistics over the train split; `prior` (6,) is subtracted from the targets and, with
+    `gyro`, so is the exact state-dependent gyroscopic delta omega (transition model `gyro_prior`)."""
     st = np.concatenate([ep.state[:-1] for ep in cache.episodes], axis=0).astype(np.float64)
     tg = np.concatenate([ep.state[1:, 7:13] - ep.state[:-1, 7:13] for ep in cache.episodes], axis=0).astype(np.float64)
     if prior is not None:
         tg = tg - np.asarray(prior, dtype=np.float64)
+    if gyro:
+        tg[:, 3:6] -= np.concatenate([gyro_prior_episode(ep) for ep in cache.episodes], axis=0)
     return {
         "state_mean": st.mean(0), "state_std": np.maximum(st.std(0), 1e-6),
         "target_mean": tg.mean(0), "target_std": np.maximum(tg.std(0), 1e-6),
     }
+
+
+def compute_wrench_normalization(cache: EpisodeCache) -> dict[str, np.ndarray]:
+    """Scale (std, zero mean) of the mass-normalized contact wrench over contact frames of the train split:
+    wrench_std (6,) for [dv_c, dw_c] and dL_std (3,) for dL.  Zero mean keeps free flight at an exactly-zero input."""
+    m = np.concatenate([ep.contact["n_contacts"] > 0 for ep in cache.episodes])
+    dv = np.concatenate([ep.impulse["target_dv_contact"] for ep in cache.episodes]).astype(np.float64)[m]
+    dw = np.concatenate([ep.impulse["target_dw_contact"] for ep in cache.episodes]).astype(np.float64)[m]
+    dL = np.concatenate([ep.impulse["target_dL_contact"] for ep in cache.episodes]).astype(np.float64)[m]
+    rms = lambda x: np.maximum(np.sqrt((x ** 2).mean(0)), 1e-6)  # noqa: E731
+    return {"wrench_std": np.concatenate([rms(dv), rms(dw)]), "dL_std": rms(dL)}

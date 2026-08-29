@@ -50,7 +50,7 @@ def contact_set_loss(pred: dict[str, torch.Tensor], gt: dict[str, torch.Tensor],
     B, K = gt["active"].shape
     perm = hungarian_match(pred, gt, scale)
     gather = lambda x: torch.gather(x, 1, perm.view(B, K, *([1] * (x.dim() - 2))).expand(B, K, *x.shape[2:]))  # noqa: E731
-    p = {k: gather(v) for k, v in pred.items() if k not in ("cardinality",)}
+    p = {k: gather(v) for k, v in pred.items() if k not in ("cardinality", "tokens", "slot_embedding")}
     act = gt["active"]
     m = act.sum().clamp_min(1.0)
     s = scale.view(B, 1)

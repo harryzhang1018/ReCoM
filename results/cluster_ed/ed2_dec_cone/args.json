@@ -1,0 +1,23 @@
+{
+  "data": "data/pilot1b",
+  "out": "runs/ed2_dec_cone",
+  "encoder_ckpt": "runs/expC_point_30k/final.pt",
+  "geometry_source": "learned",
+  "head_mode": "cone",
+  "pooled_only": false,
+  "no_slot_embedding": false,
+  "width": 128,
+  "n_blocks": 2,
+  "n_heads": 4,
+  "steps": 20000,
+  "batch": 512,
+  "lr": 0.0003,
+  "huber_delta": 1.0,
+  "eval_every": 5000,
+  "max_train_episodes": null,
+  "max_eval_episodes": 120,
+  "max_eval_frames": 200000,
+  "device": "cuda",
+  "seed": 0,
+  "workers": 2
+}

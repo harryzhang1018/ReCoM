@@ -1,5 +1,7 @@
-"""Experiments A/B/D/E: train the box transition model (state-only or contact-conditioned) and evaluate
-teacher-forced one-step error plus closed-loop rollouts with selectable contact sources."""
+"""Experiments A/B/D/E and the encoder-decoder study (ED3): train the box transition model (state-only,
+contact-context or decoder-wrench conditioned) and evaluate teacher-forced one-step error plus closed-loop rollouts
+with selectable contact sources.  Wrench modes (JL-6 / J-3 / JL-6-R) need --decoder-ckpt and run the frozen
+geometry encoder + impulse decoder on every (teacher-forced or predicted) state."""
 from __future__ import annotations
 
 import argparse
@@ -12,9 +14,21 @@ from torch.utils.data import DataLoader, WeightedRandomSampler
 
 from ..config import dump_json
 from ..data.dataset import CAT_FIRST_IMPACT, CAT_REBOUND, TransitionWindowDataset, collate_dict, compute_state_normalization
-from ..models.transition import BoxTransitionModel, gt_contacts_from_batch
+from ..data.impulse_targets import LABEL_VERSION, PHYS_KEYS
+from ..models.transition import WRENCH_MODES, BoxTransitionModel, gt_contacts_from_batch
 from .common import MetricsLogger, cosine_lr, load_caches, save_checkpoint, seed_all, to_device
-from .rollout import ContactSource, contacts_from_encoder_output, evaluate_rollouts
+from .rollout import ContactSource, attach_wrench, contacts_from_encoder_output, evaluate_rollouts
+
+TIME_KEYS = ("states", "next_states", "targets", "category")           # window tensors with a time axis (plus c_* and target_*)
+IMPULSE_BINS = (0.0, 1e-3, 0.1, 1.0, float("inf"))                     # |target_dv_contact| bins for one-step error breakdown
+
+
+def batch_phys(batch: dict) -> dict[str, torch.Tensor]:
+    return {k: batch[k] for k in PHYS_KEYS}
+
+
+def slice_window(batch: dict, T: int) -> dict:
+    return {k: (v[:, :T] if (k in TIME_KEYS or k.startswith("c_") or k.startswith("target_")) else v) for k, v in batch.items()}
 
 
 def load_encoder(path: str, device):
@@ -27,9 +41,20 @@ def load_encoder(path: str, device):
     return enc, cfg["latent_dim"]
 
 
-def batch_contacts(batch: dict, source: str, encoder, latent_dim: int, device, grad: bool = False, return_raw: bool = False):
+def batch_contacts(batch: dict, source: str, encoder, latent_dim: int, device, grad: bool = False, return_raw: bool = False, decoder=None, wrench_ablation: str = "none"):
     """Contacts for a (B,T) window from the requested source.  grad=True runs the learned encoder with autograd
-    (joint fine-tuning); return_raw also returns the flat (B*T) encoder output for the retained contact loss."""
+    (joint fine-tuning); return_raw also returns the flat (B*T) encoder output for the retained contact loss.
+    With `decoder`, the (frozen, no-grad) impulse decoder attaches the wrench (see rollout.attach_wrench)."""
+    c = _batch_geometry(batch, source, encoder, latent_dim, device, grad, return_raw)
+    if decoder is not None:
+        cc, raw = c if return_raw else (c, None)
+        with torch.no_grad():
+            cc = attach_wrench(cc, batch["states"], batch["half_extents"], batch_phys(batch), decoder, wrench_ablation)
+        return (cc, raw) if return_raw else cc
+    return c
+
+
+def _batch_geometry(batch: dict, source: str, encoder, latent_dim: int, device, grad: bool = False, return_raw: bool = False):
     if source == "gt":
         c = gt_contacts_from_batch(batch, latent_dim)
         return (c, None) if return_raw else c
@@ -71,22 +96,24 @@ def window_contact_loss(out: dict, batch: dict) -> torch.Tensor:
 
 
 @torch.no_grad()
-def one_step_eval(model, cache, device, T: int, source: str, encoder, latent_dim: int, max_windows: int = 20000) -> dict:
+def one_step_eval(model, cache, device, T: int, source: str, encoder, latent_dim: int, max_windows: int = 20000, decoder=None, wrench_ablation: str = "none") -> dict:
     model.eval()
     ds = TransitionWindowDataset(cache, T, stride=T)
     idx = np.arange(len(ds))
     if len(idx) > max_windows:
         idx = np.sort(np.random.default_rng(0).choice(idx, max_windows, replace=False))
-    err_v, err_w, cats = [], [], []
+    err_v, err_w, cats, mags, ncs = [], [], [], [], []
     for s in range(0, len(idx), 64):
         batch = to_device(collate_dict([ds[i] for i in idx[s: s + 64]]), device)
-        c = batch_contacts(batch, source, encoder, latent_dim, device) if model.contact_mode != "none" else None
+        c = batch_contacts(batch, source, encoder, latent_dim, device, decoder=decoder, wrench_ablation=wrench_ablation) if model.contact_mode != "none" else None
         d = model.predict_delta(batch["states"], batch["half_extents"], c)
         e = (d - batch["targets"]).reshape(-1, 6)
         err_v.append(e[:, :3].norm(dim=-1).cpu().numpy())
         err_w.append(e[:, 3:].norm(dim=-1).cpu().numpy())
         cats.append(batch["category"].reshape(-1).cpu().numpy())
-    err_v, err_w, cats = map(np.concatenate, (err_v, err_w, cats))
+        mags.append(batch["target_dv_contact"].reshape(-1, 3).norm(dim=-1).cpu().numpy())
+        ncs.append(batch["c_n_contacts"].reshape(-1).cpu().numpy())
+    err_v, err_w, cats, mags, ncs = map(np.concatenate, (err_v, err_w, cats, mags, ncs))
     from ..data.dataset import CAT_NAMES
     res = {"dv_err_mean": float(err_v.mean()), "dw_err_mean": float(err_w.mean())}
     for c_, name in enumerate(CAT_NAMES):
@@ -94,6 +121,15 @@ def one_step_eval(model, cache, device, T: int, source: str, encoder, latent_dim
         if m.any():
             res[f"dv_err_{name}"] = float(err_v[m].mean())
             res[f"dw_err_{name}"] = float(err_w[m].mean())
+    # error conditional on the net contact impulse magnitude and on the contact cardinality (plan Sec. 9.5)
+    for lo, hi in zip(IMPULSE_BINS[:-1], IMPULSE_BINS[1:]):
+        m = (mags >= lo) & (mags < hi)
+        if m.any():
+            res[f"dv_err_imp[{lo:g},{hi:g})"], res[f"dw_err_imp[{lo:g},{hi:g})"] = float(err_v[m].mean()), float(err_w[m].mean())
+    for k in range(5):
+        m = ncs == k
+        if m.any():
+            res[f"dv_err_nc{k}"], res[f"dw_err_nc{k}"] = float(err_v[m].mean()), float(err_w[m].mean())
     model.train()
     return res
 
@@ -102,10 +138,14 @@ def main(argv=None) -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", default="data/fixed1a")
     ap.add_argument("--out", default="runs/transition_state_only")
-    ap.add_argument("--contact-mode", default="none", choices=["none", "explicit", "latent", "explicit+latent"])
+    ap.add_argument("--contact-mode", default="none", choices=["none", "explicit", "latent", "explicit+latent", "wrench", "wrench_lin"])
     ap.add_argument("--train-contact-source", default="gt", choices=["gt", "analytic", "learned"])
     ap.add_argument("--eval-contact-sources", default="gt,analytic", help="comma list of gt,analytic,learned")
     ap.add_argument("--encoder-ckpt", default=None)
+    ap.add_argument("--decoder-ckpt", default=None, help="impulse decoder checkpoint (frozen) for the wrench contact modes")
+    ap.add_argument("--physics-residual", action="store_true", help="JL-6-R: apply the decoder wrench as a Newton-Euler step, network predicts the residual")
+    ap.add_argument("--no-gyro-prior", action="store_true", help="disable the exact gyroscopic free-flight prior on delta omega")
+    ap.add_argument("--wrench-ablation", default="none", choices=["none", "zero", "shuffle"], help="evaluation-only: zero or shuffle the decoder wrench")
     ap.add_argument("--block-size", type=int, default=32)
     ap.add_argument("--n-layer", type=int, default=3)
     ap.add_argument("--n-embd", type=int, default=128)
@@ -145,26 +185,47 @@ def main(argv=None) -> None:
     encoder, latent_dim = (load_encoder(a.encoder_ckpt, device) if a.encoder_ckpt else (None, 0))
     if a.contact_mode in ("latent", "explicit+latent"):
         assert encoder is not None, "latent contact modes need --encoder-ckpt"
-    if a.contact_mode == "explicit":
+    if a.contact_mode in ("explicit",) + WRENCH_MODES:
         latent_dim = 0
     if encoder is not None and not a.finetune_encoder:
         encoder.requires_grad_(False)
+    decoder, dec_cfg = (None, None)
+    if a.contact_mode in WRENCH_MODES:
+        assert a.decoder_ckpt, "wrench contact modes need --decoder-ckpt"
+        from .train_impulse import load_decoder
+        decoder, dec_cfg = load_decoder(a.decoder_ckpt, device)
+        decoder.requires_grad_(False)
+        if a.train_contact_source != "learned":
+            print(f"WARNING: wrench mode trained with '{a.train_contact_source}' geometry: the decoder falls back to its null slot embedding", flush=True)
+    elif a.decoder_ckpt:
+        print("WARNING: --decoder-ckpt is ignored outside the wrench contact modes", flush=True)
     meta0 = caches["train"].episodes[0].meta
     dt, g = meta0["dt"], meta0["episode"]["physics"]["gravity"]
     prior = None if a.no_gravity_prior else np.array([0.0, 0.0, -g * dt, 0.0, 0.0, 0.0])
-    norm = compute_state_normalization(caches["train"], prior)
+    gyro_prior, physics_residual = not a.no_gyro_prior, a.physics_residual
     soft_gate = a.finetune_encoder and a.train_contact_source == "learned"
-    model = BoxTransitionModel(norm, contact_mode=a.contact_mode, block_size=T, n_layer=a.n_layer, n_embd=a.n_embd, latent_dim=latent_dim, dt=dt,
-                               gravity_prior=not a.no_gravity_prior, gravity=g, contact_gate=not a.no_contact_gate, soft_gate=soft_gate).to(device)
-    if a.eval_only:
+    ck = None
+    if a.eval_only:   # rebuild exactly the checkpointed model (old runs have no gyro prior / physics residual)
         ck = torch.load(a.eval_only, map_location=device, weights_only=False)
+        gyro_prior, physics_residual, soft_gate = ck["config"].get("gyro_prior", False), ck["config"].get("physics_residual", False), ck["config"].get("soft_gate", soft_gate)
+    norm = compute_state_normalization(caches["train"], prior, gyro=gyro_prior)
+    if dec_cfg is not None:
+        norm.update({k: np.asarray(v) for k, v in dec_cfg["normalization"].items()})   # wrench_std / dL_std: single source of truth
+    model = BoxTransitionModel(norm, contact_mode=a.contact_mode, block_size=T, n_layer=a.n_layer, n_embd=a.n_embd, latent_dim=latent_dim, dt=dt,
+                               gravity_prior=not a.no_gravity_prior, gravity=g, contact_gate=not a.no_contact_gate, soft_gate=soft_gate,
+                               gyro_prior=gyro_prior, physics_residual=physics_residual).to(device)
+    model_cfg = {"contact_mode": a.contact_mode, "block_size": T, "n_layer": a.n_layer, "n_embd": a.n_embd, "latent_dim": latent_dim, "normalization": {k: v.tolist() for k, v in norm.items()},
+                 "encoder_ckpt": a.encoder_ckpt, "decoder_ckpt": a.decoder_ckpt, "gravity_prior": not a.no_gravity_prior, "gyro_prior": gyro_prior, "physics_residual": physics_residual,
+                 "gravity": g, "dt": dt, "contact_gate": not a.no_contact_gate, "soft_gate": soft_gate, "label_version": LABEL_VERSION}
+    if a.eval_only:
         model.load_state_dict(ck["model_state_dict"])
         if a.finetune_encoder and encoder is not None and (Path(a.eval_only).parent / "encoder_finetuned.pt").exists():
             encoder.load_state_dict(torch.load(Path(a.eval_only).parent / "encoder_finetuned.pt", map_location=device, weights_only=False)["model_state_dict"])
         a.steps = 0
-        print(f"eval-only: loaded {a.eval_only} (soft_gate={soft_gate})", flush=True)
+        print(f"eval-only: loaded {a.eval_only} (soft_gate={soft_gate} gyro_prior={gyro_prior} physics_residual={physics_residual})", flush=True)
     loss_fn = torch.nn.functional.mse_loss if a.loss == "mse" else torch.nn.functional.huber_loss
-    print(f"transition model contact_mode={a.contact_mode} params={sum(p.numel() for p in model.parameters())}", flush=True)
+    print(f"transition model contact_mode={a.contact_mode} gyro_prior={gyro_prior} physics_residual={physics_residual} params={sum(p.numel() for p in model.parameters())}"
+          + (f" decoder params={sum(p.numel() for p in decoder.parameters())}" if decoder is not None else ""), flush=True)
 
     H = a.rollout_horizon
     ds = TransitionWindowDataset(caches["train"], T + H, stride=2)
@@ -178,7 +239,7 @@ def main(argv=None) -> None:
     dl = DataLoader(ds, batch_size=a.batch, sampler=sampler, collate_fn=collate_dict, num_workers=a.workers, drop_last=True, persistent_workers=a.workers > 0)
     params = list(model.parameters()) + (list(encoder.parameters()) if (encoder is not None and a.finetune_encoder) else [])
     opt = torch.optim.AdamW(params, lr=a.lr, weight_decay=1e-4)
-    src_train = ContactSource(a.train_contact_source, encoder, latent_dim=latent_dim)
+    src_train = ContactSource(a.train_contact_source, encoder, latent_dim=latent_dim, decoder=decoder)
     tstd = model.target_std
 
     t0 = time.time()
@@ -188,11 +249,11 @@ def main(argv=None) -> None:
             g["lr"] = cosine_lr(step, a.steps, a.lr)
         batch = to_device(batch, device)
         full_states, full_next = batch["states"], batch["next_states"]
-        win = {k: (v[:, :T] if torch.is_tensor(v) and v.dim() >= 2 and v.shape[1] == T + H else v) for k, v in batch.items()}
+        win = slice_window(batch, T)
         joint = a.finetune_encoder and a.train_contact_source == "learned"
-        c, enc_out = (batch_contacts(win, a.train_contact_source, encoder, latent_dim, device, grad=joint, return_raw=True) if model.contact_mode != "none" else (None, None))
-        pred = model.norm_target(model.predict_delta(win["states"], win["half_extents"], c))
-        loss_1 = loss_fn(pred, model.norm_target(win["targets"]))
+        c, enc_out = (batch_contacts(win, a.train_contact_source, encoder, latent_dim, device, grad=joint, return_raw=True, decoder=decoder) if model.contact_mode != "none" else (None, None))
+        pred = model.norm_target(model.predict_delta(win["states"], win["half_extents"], c), win["states"], win["half_extents"])
+        loss_1 = loss_fn(pred, model.norm_target(win["targets"], win["states"], win["half_extents"]))
         loss = loss_1
         loss_r = torch.zeros((), device=device)
         loss_c = torch.zeros((), device=device)
@@ -203,6 +264,7 @@ def main(argv=None) -> None:
             # Experiment E: unroll H steps from the window end with predicted states and recomputed contacts
             hist_s, hist_c = win["states"], c
             he = win["half_extents"]
+            phys = batch_phys(batch)
             for k in range(1, H + 1):
                 d = model.predict_delta(hist_s, he, hist_c)[:, -1]
                 s_next = model.integrate(hist_s[:, -1], d)
@@ -210,7 +272,7 @@ def main(argv=None) -> None:
                 loss_r = loss_r + (a.rollout_gamma ** (k - 1)) * loss_fn((s_next[:, 7:13] - gt_next[:, 7:13]) / tstd, torch.zeros_like(tstd).expand_as(s_next[:, 7:13]))
                 if hist_c is not None:
                     gt_c = {kk: batch["c_" + kk][:, T - 1 + k] for kk in ("active", "d", "n", "p_box_local")} if a.train_contact_source == "gt" else None
-                    c_next = src_train(s_next, he, gt_c)
+                    c_next = src_train(s_next, he, gt_c, phys)
                     if latent_dim == 0:
                         c_next.pop("latent", None)
                     c_next = {kk: c_next[kk] for kk in hist_c}
@@ -226,34 +288,39 @@ def main(argv=None) -> None:
             logger.log({"step": step, "loss": loss.item(), "loss_1step": loss_1.item(), "loss_rollout": loss_r.item(), "loss_contact": loss_c.item(), "lr": opt.param_groups[0]["lr"], "t": time.time() - t0})
             print(f"step {step} loss {loss.item():.5f} (1-step {loss_1.item():.5f} rollout {loss_r.item():.5f} contact {loss_c.item():.4f}) {time.time() - t0:.0f}s", flush=True)
         if step % a.eval_every == 0 or step == a.steps:
-            ev = one_step_eval(model, caches["val"], device, T, a.train_contact_source, encoder, latent_dim)
+            ev = one_step_eval(model, caches["val"], device, T, a.train_contact_source, encoder, latent_dim, decoder=decoder)
             logger.log({"step": step, "val_one_step": ev})
-            print("  [val one-step] " + " ".join(f"{k}={v:.4g}" for k, v in ev.items()), flush=True)
-            save_checkpoint(out / "last.pt", model, {"contact_mode": a.contact_mode, "block_size": T, "n_layer": a.n_layer, "n_embd": a.n_embd, "latent_dim": latent_dim, "normalization": {k: v.tolist() for k, v in norm.items()}, "encoder_ckpt": a.encoder_ckpt, "gravity_prior": not a.no_gravity_prior, "gravity": g, "dt": dt, "contact_gate": not a.no_contact_gate, "soft_gate": soft_gate})
+            print("  [val one-step] " + " ".join(f"{k}={v:.4g}" for k, v in ev.items() if "imp[" not in k and "_nc" not in k), flush=True)
+            save_checkpoint(out / "last.pt", model, model_cfg)
         if step >= a.steps:
             break
 
     final = {"one_step": {}, "rollout": {}}
+    if decoder is not None:
+        from .train_impulse import evaluate_decoder
+        final["impulse"] = {}
     for split in ("val", "test", "test_geometry"):
         if caches[split] is None:
             continue
-        final["one_step"][split] = one_step_eval(model, caches[split], device, T, a.train_contact_source, encoder, latent_dim)
+        final["one_step"][split] = one_step_eval(model, caches[split], device, T, a.train_contact_source, encoder, latent_dim, decoder=decoder, wrench_ablation=a.wrench_ablation)
+        if decoder is not None:
+            final["impulse"][split] = evaluate_decoder(decoder, encoder, caches[split], device, a.train_contact_source if a.train_contact_source != "gt" else "learned")
         for src in a.eval_contact_sources.split(","):
             if model.contact_mode == "none" and src != "gt":
                 continue
             if src == "learned" and encoder is None:
                 continue
-            source = ContactSource(src, encoder, latent_dim=latent_dim)
+            source = ContactSource(src, encoder, latent_dim=latent_dim, decoder=decoder, wrench_ablation=a.wrench_ablation)
             summ, rows = evaluate_rollouts(model, source, caches[split], device, T=T)
             final["rollout"][f"{split}/{src}"] = summ
             dump_json(rows, out / f"rollout_rows_{split}_{src}.json")
-            keys = ["pos_err@100", "pos_err@500", "pos_err_final", "rot_err_deg_final", "v_err_mean", "w_err_mean", "impact_dv_err", "impact_dw_err", "apex_err", "max_penetration_pred", "artificial_energy_max"]
+            keys = ["pos_err@100", "pos_err@500", "pos_err_final", "rot_err_deg_final", "sym_rot_err_deg_final", "settled_face_match", "v_err_mean", "w_err_mean", "impact_dv_err", "impact_dw_err", "apex_err", "max_penetration_pred", "artificial_energy_max"]
             print(f"[rollout {split}/{src}] " + " ".join(f"{k}={summ[k]['median']:.4g}" for k in keys if k in summ), flush=True)
     dump_json(final, out / "final_metrics.json")
     if encoder is not None and a.finetune_encoder:
         ck = torch.load(a.encoder_ckpt, map_location="cpu", weights_only=False)
         save_checkpoint(out / "encoder_finetuned.pt", encoder, ck["config"])
-    save_checkpoint(out / "final.pt", model, {"contact_mode": a.contact_mode, "block_size": T, "n_layer": a.n_layer, "n_embd": a.n_embd, "latent_dim": latent_dim, "normalization": {k: v.tolist() for k, v in norm.items()}, "encoder_ckpt": a.encoder_ckpt, "gravity_prior": not a.no_gravity_prior, "gravity": g, "dt": dt, "contact_gate": not a.no_contact_gate, "soft_gate": soft_gate})
+    save_checkpoint(out / "final.pt", model, model_cfg)
 
 
 if __name__ == "__main__":

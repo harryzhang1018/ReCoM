@@ -20,7 +20,7 @@ def contact_frame_metrics(pred: dict, gt: dict, scale, perm=None) -> dict[str, n
         perm = hungarian_match(pred, gt, scale)
     B, K = gt["active"].shape
     g = lambda x: torch.gather(x, 1, perm.view(B, K, *([1] * (x.dim() - 2))).expand(B, K, *x.shape[2:]))  # noqa: E731
-    p = {k: g(v) for k, v in pred.items() if k not in ("cardinality", "tokens")}
+    p = {k: g(v) for k, v in pred.items() if k not in ("cardinality", "tokens", "slot_embedding")}
     prob = torch.sigmoid(p["logit"])
     pa, ga = (prob > 0.5).float(), gt["active"]
     s = scale.view(B, 1)
@@ -110,3 +110,102 @@ def rollout_errors(pred: np.ndarray, gt: np.ndarray) -> dict[str, np.ndarray]:
         "v_err": np.linalg.norm(pred[:, 7:10] - gt[:, 7:10], axis=1),
         "w_err": np.linalg.norm(pred[:, 10:13] - gt[:, 10:13], axis=1),
     }
+
+
+# ---- contact impulses (encoder-decoder plan, Section 9.4) ----------------------------------------
+def impulse_frame_metrics(out: dict, target: dict, active: torch.Tensor, n: torch.Tensor, mu: torch.Tensor, label_thr: float = 1e-4) -> dict[str, np.ndarray]:
+    """Per-frame raw quantities.  out: decoder output (dv_c, dL, dw_c, j_slot) with leading dims (...);
+    target: target_dv_contact / target_dL_contact / target_dw_contact (...,3); active (...,K); n (...,K,3); mu (...)."""
+    from ..models.impulse_decoder import cone_violation
+    f = lambda x: x.reshape(-1, x.shape[-1]) if x.dim() > 1 else x.reshape(-1)  # noqa: E731
+    dv_p, dL_p, dw_p = f(out["dv_c"]), f(out["dL"]), f(out["dw_c"])
+    dv_t, dL_t, dw_t = f(target["target_dv_contact"]), f(target["target_dL_contact"]), f(target["target_dw_contact"])
+    act = active.reshape(-1, active.shape[-1])
+    K = act.shape[-1]
+    pred_active = act.amax(-1) > 0
+    label = dv_t.norm(dim=-1) > label_thr
+    cosang = (dv_p * dv_t).sum(-1) / (dv_p.norm(dim=-1) * dv_t.norm(dim=-1)).clamp_min(1e-12)
+    viol = cone_violation(out["j_slot"].reshape(-1, K, 3), n.reshape(-1, K, 3), mu.reshape(-1), act)
+    res = {
+        "label": label.float(), "pred_active": pred_active.float(),
+        "dv_abs": (dv_p - dv_t).norm(dim=-1), "dL_abs": (dL_p - dL_t).norm(dim=-1), "dw_abs": (dw_p - dw_t).norm(dim=-1),
+        "dv_rel": (dv_p - dv_t).norm(dim=-1) / dv_t.norm(dim=-1).clamp_min(1e-12), "dL_rel": (dL_p - dL_t).norm(dim=-1) / dL_t.norm(dim=-1).clamp_min(1e-12),
+        "dir_err_deg": torch.rad2deg(torch.arccos(cosang.clamp(-1, 1))),
+        "dv_pred_mag": dv_p.norm(dim=-1), "dv_target_mag": dv_t.norm(dim=-1), "dL_target_mag": dL_t.norm(dim=-1), "dw_target_mag": dw_t.norm(dim=-1),
+        "cone_viol_frac": viol.sum(-1) / act.sum(-1).clamp_min(1),
+    }
+    return {k: _npy(v) for k, v in res.items()}
+
+
+def aggregate_impulse_metrics(acc: dict[str, list], categories: np.ndarray | None = None, label_thr: float = 1e-4) -> dict:
+    A = {k: np.concatenate(v) for k, v in acc.items()}
+
+    def summ(m: np.ndarray) -> dict:
+        lab, pa = A["label"][m] > 0, A["pred_active"][m] > 0
+        ev = lab & pa                       # decoder is evaluated where the encoder activated and an impulse exists
+        r = {"n": int(m.sum()), "n_label": int(lab.sum()), "n_pred_active": int(pa.sum()),
+             "missed_impulse_rate": float((lab & ~pa).sum() / max(lab.sum(), 1)),
+             "spurious_impulse_rate": float(((~lab) & pa & (A["dv_pred_mag"][m] > label_thr)).sum() / max((~lab).sum(), 1)),   # nonzero prediction on zero-label frames
+             "cone_violation_rate": float(A["cone_viol_frac"][m][pa].mean()) if pa.any() else None}
+        for k in ("dv", "dL", "dw"):
+            r[f"{k}_mae"] = float(A[f"{k}_abs"][m][ev].mean()) if ev.any() else None
+            r[f"{k}_p90"] = float(np.percentile(A[f"{k}_abs"][m][ev], 90)) if ev.any() else None
+        # including encoder misses (error = full label) -> what the transition model actually sees
+        r["dv_mae_incl_missed"] = float(np.where(pa, A["dv_abs"][m], A["dv_target_mag"][m])[lab].mean()) if lab.any() else None
+        r["dv_rel_err_median"] = float(np.median(A["dv_rel"][m][ev])) if ev.any() else None
+        r["dL_rel_err_median"] = float(np.median(A["dL_rel"][m][ev])) if ev.any() else None
+        r["dir_err_deg_median"] = float(np.median(A["dir_err_deg"][m][ev])) if ev.any() else None
+        r["zero_baseline_dv_mae"] = float(A["dv_target_mag"][m][ev].mean()) if ev.any() else None
+        r["zero_baseline_dL_mae"] = float(A["dL_target_mag"][m][ev].mean()) if ev.any() else None
+        r["zero_baseline_dw_mae"] = float(A["dw_target_mag"][m][ev].mean()) if ev.any() else None
+        return r
+
+    res = summ(np.ones(len(A["label"]), dtype=bool))
+    if categories is not None:
+        from ..data.dataset import CAT_NAMES
+        res["by_category"] = {}
+        for c, name in enumerate(CAT_NAMES):
+            mc = categories == c
+            if mc.any():
+                res["by_category"][name] = summ(mc)
+    return res
+
+
+# ---- orientation symmetry (box) ---------------------------------------------------------------------
+def settled_face_np(quat: np.ndarray) -> np.ndarray:
+    """Which local face points down: index 2a (+axis a down) or 2a+1 (-axis a down), a in {x, y, z}.  (...,4) -> (...)."""
+    from ..geometry.transforms import quat_to_rotmat_np
+    R = quat_to_rotmat_np(quat)
+    z = R[..., 2, :]                        # world-z component of each local axis
+    a = np.abs(z).argmax(-1)
+    s = np.take_along_axis(z, a[..., None], -1)[..., 0]
+    return 2 * a + (s > 0).astype(np.int64)  # +axis pointing up (s>0) means the -axis face is down
+
+
+def _symmetry_group(group: str) -> np.ndarray:
+    import itertools
+    if group == "d2":
+        return np.stack([np.diag(d) for d in ([1, 1, 1], [1, -1, -1], [-1, 1, -1], [-1, -1, 1])]).astype(np.float64)
+    if group == "octahedral":
+        mats = []
+        for perm in itertools.permutations(range(3)):
+            for signs in itertools.product([1, -1], repeat=3):
+                M = np.zeros((3, 3))
+                for i, p in enumerate(perm):
+                    M[i, p] = signs[i]
+                if np.linalg.det(M) > 0:
+                    mats.append(M)
+        return np.stack(mats)
+    raise ValueError(group)
+
+
+def symmetry_rot_err_deg_np(q_pred: np.ndarray, q_gt: np.ndarray, group: str = "d2") -> np.ndarray:
+    """Orientation error modulo the box's rotational symmetries: min_g angle(R_gt^T R_pred g).
+    'd2' (4 elements) is exact for a general cuboid; 'octahedral' (24) is exact only for a cube (shape-agnostic lower bound)."""
+    from ..geometry.transforms import quat_to_rotmat_np
+    Rp, Rg = quat_to_rotmat_np(q_pred), quat_to_rotmat_np(q_gt)
+    rel = np.einsum("...ji,...jk->...ik", Rg, Rp)                     # R_gt^T R_pred
+    G = _symmetry_group(group)
+    tr = np.einsum("...ik,gki->...g", rel, G)                          # trace(rel @ g)
+    ang = np.arccos(np.clip((tr - 1.0) / 2.0, -1.0, 1.0))
+    return np.rad2deg(ang.min(-1))

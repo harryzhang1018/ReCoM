@@ -1,0 +1,442 @@
+{
+ "A) both with 8-step unrolled loss|test|JL-6-R v6+H8 (3 seeds)|pos_err@500": [
+  -16.052624938452183,
+  5.202337890045171,
+  0.7777777777777778
+ ],
+ "A) both with 8-step unrolled loss|test|JL-6-R v6+H8 (3 seeds)|pos_err@1000": [
+  -21.092844017833606,
+  7.632332075815218,
+  0.7777777777777778
+ ],
+ "A) both with 8-step unrolled loss|test|JL-6-R v6+H8 (3 seeds)|pos_err_final": [
+  -14.624637093893467,
+  10.864869082303276,
+  0.4444444444444444
+ ],
+ "A) both with 8-step unrolled loss|test|JL-6-R v6+H8 (3 seeds)|rot_err_deg@500": [
+  -33.49767421203199,
+  4.590332891623027,
+  1.0
+ ],
+ "A) both with 8-step unrolled loss|test|JL-6-R v6+H8 (3 seeds)|rot_err_deg@1000": [
+  -16.11245325792129,
+  2.3860892089000147,
+  0.8888888888888888
+ ],
+ "A) both with 8-step unrolled loss|test|JL-6-R v6+H8 (3 seeds)|rot_err_deg_final": [
+  -2.9229272441307907,
+  1.2222162289560767,
+  1.0
+ ],
+ "A) both with 8-step unrolled loss|test|JL-6-R v6+H8 (3 seeds)|sym_rot_err_deg_final": [
+  -31.033539457483407,
+  6.288387566730083,
+  0.1111111111111111
+ ],
+ "A) both with 8-step unrolled loss|test|JL-6-R v6+H8 (3 seeds)|impact_dv_err": [
+  -25.82290879246367,
+  6.247198703625487,
+  1.0
+ ],
+ "A) both with 8-step unrolled loss|test|JL-6-R v6+H8 (3 seeds)|impact_dw_err": [
+  -41.46487039927018,
+  3.2794784358683122,
+  1.0
+ ],
+ "A) both with 8-step unrolled loss|test|JL-6-R v6+H8 (3 seeds)|max_penetration_pred": [
+  -95.35936910835157,
+  2.202731775912498,
+  1.0
+ ],
+ "A) both with 8-step unrolled loss|test|JL-6-R v6+H8 (3 seeds)|final_ang_speed_err": [
+  -58.618001331815236,
+  8.04657796902881,
+  1.0
+ ],
+ "A) both with 8-step unrolled loss|test|JL-6-R v5+H8 (2 seeds)|pos_err@500": [
+  -10.639641887411386,
+  4.6448955022290725,
+  0.0
+ ],
+ "A) both with 8-step unrolled loss|test|JL-6-R v5+H8 (2 seeds)|pos_err@1000": [
+  -12.253534363689267,
+  4.374736614754909,
+  0.16666666666666666
+ ],
+ "A) both with 8-step unrolled loss|test|JL-6-R v5+H8 (2 seeds)|pos_err_final": [
+  -6.531510996412041,
+  8.09318830651023,
+  0.0
+ ],
+ "A) both with 8-step unrolled loss|test|JL-6-R v5+H8 (2 seeds)|rot_err_deg@500": [
+  -10.316834484875756,
+  2.9579889036492983,
+  0.16666666666666666
+ ],
+ "A) both with 8-step unrolled loss|test|JL-6-R v5+H8 (2 seeds)|rot_err_deg@1000": [
+  -11.574959615614054,
+  2.4662713258856113,
+  0.5
+ ],
+ "A) both with 8-step unrolled loss|test|JL-6-R v5+H8 (2 seeds)|rot_err_deg_final": [
+  -2.5300337727588125,
+  1.218853765604157,
+  0.3333333333333333
+ ],
+ "A) both with 8-step unrolled loss|test|JL-6-R v5+H8 (2 seeds)|sym_rot_err_deg_final": [
+  -9.712916383634083,
+  6.260146977571459,
+  0.0
+ ],
+ "A) both with 8-step unrolled loss|test|JL-6-R v5+H8 (2 seeds)|impact_dv_err": [
+  -9.46860653236267,
+  5.802892450765717,
+  0.0
+ ],
+ "A) both with 8-step unrolled loss|test|JL-6-R v5+H8 (2 seeds)|impact_dw_err": [
+  -21.395508639566117,
+  4.2183292604587175,
+  1.0
+ ],
+ "A) both with 8-step unrolled loss|test|JL-6-R v5+H8 (2 seeds)|max_penetration_pred": [
+  -95.68384148015947,
+  1.9815530757151325,
+  1.0
+ ],
+ "A) both with 8-step unrolled loss|test|JL-6-R v5+H8 (2 seeds)|final_ang_speed_err": [
+  -66.44302158761344,
+  6.766515078424579,
+  1.0
+ ],
+ "A) both with 8-step unrolled loss|test_geometry|JL-6-R v6+H8 (3 seeds)|pos_err@500": [
+  -25.179276339765725,
+  2.070843660655191,
+  1.0
+ ],
+ "A) both with 8-step unrolled loss|test_geometry|JL-6-R v6+H8 (3 seeds)|pos_err@1000": [
+  -14.70109623551904,
+  2.3719005638081203,
+  0.7777777777777778
+ ],
+ "A) both with 8-step unrolled loss|test_geometry|JL-6-R v6+H8 (3 seeds)|pos_err_final": [
+  -16.872129790552254,
+  3.6879374609017237,
+  0.6666666666666666
+ ],
+ "A) both with 8-step unrolled loss|test_geometry|JL-6-R v6+H8 (3 seeds)|rot_err_deg@500": [
+  -29.330224643100387,
+  3.6451606422483156,
+  0.8888888888888888
+ ],
+ "A) both with 8-step unrolled loss|test_geometry|JL-6-R v6+H8 (3 seeds)|rot_err_deg@1000": [
+  -9.18424432470833,
+  4.520299662774347,
+  0.3333333333333333
+ ],
+ "A) both with 8-step unrolled loss|test_geometry|JL-6-R v6+H8 (3 seeds)|rot_err_deg_final": [
+  -2.958241566469935,
+  1.1461130095173535,
+  0.2222222222222222
+ ],
+ "A) both with 8-step unrolled loss|test_geometry|JL-6-R v6+H8 (3 seeds)|sym_rot_err_deg_final": [
+  -2.7700848037577313,
+  14.523875374525774,
+  0.0
+ ],
+ "A) both with 8-step unrolled loss|test_geometry|JL-6-R v6+H8 (3 seeds)|impact_dv_err": [
+  -24.812106154727402,
+  4.079276393831831,
+  1.0
+ ],
+ "A) both with 8-step unrolled loss|test_geometry|JL-6-R v6+H8 (3 seeds)|impact_dw_err": [
+  -47.54761304918815,
+  2.742733199058043,
+  1.0
+ ],
+ "A) both with 8-step unrolled loss|test_geometry|JL-6-R v6+H8 (3 seeds)|max_penetration_pred": [
+  -93.47825180781314,
+  2.8512951956741097,
+  1.0
+ ],
+ "A) both with 8-step unrolled loss|test_geometry|JL-6-R v6+H8 (3 seeds)|final_ang_speed_err": [
+  -54.626739671490284,
+  9.268120602255646,
+  1.0
+ ],
+ "A) both with 8-step unrolled loss|test_geometry|JL-6-R v5+H8 (2 seeds)|pos_err@500": [
+  -1.8184064017324022,
+  2.3171086569666968,
+  0.0
+ ],
+ "A) both with 8-step unrolled loss|test_geometry|JL-6-R v5+H8 (2 seeds)|pos_err@1000": [
+  -6.703774403687224,
+  9.72411595665054,
+  0.16666666666666666
+ ],
+ "A) both with 8-step unrolled loss|test_geometry|JL-6-R v5+H8 (2 seeds)|pos_err_final": [
+  -4.6279099180238985,
+  8.696314500851333,
+  0.0
+ ],
+ "A) both with 8-step unrolled loss|test_geometry|JL-6-R v5+H8 (2 seeds)|rot_err_deg@500": [
+  -7.514674311327847,
+  3.2622951454938973,
+  0.0
+ ],
+ "A) both with 8-step unrolled loss|test_geometry|JL-6-R v5+H8 (2 seeds)|rot_err_deg@1000": [
+  -3.573138704289665,
+  8.877008609724166,
+  0.0
+ ],
+ "A) both with 8-step unrolled loss|test_geometry|JL-6-R v5+H8 (2 seeds)|rot_err_deg_final": [
+  -0.6693480775710303,
+  1.1836259264050708,
+  0.0
+ ],
+ "A) both with 8-step unrolled loss|test_geometry|JL-6-R v5+H8 (2 seeds)|sym_rot_err_deg_final": [
+  3.858494540300468,
+  11.727251186117593,
+  0.0
+ ],
+ "A) both with 8-step unrolled loss|test_geometry|JL-6-R v5+H8 (2 seeds)|impact_dv_err": [
+  9.663504965561737,
+  5.034267003871174,
+  0.0
+ ],
+ "A) both with 8-step unrolled loss|test_geometry|JL-6-R v5+H8 (2 seeds)|impact_dw_err": [
+  -33.36372500753662,
+  2.802691696018763,
+  1.0
+ ],
+ "A) both with 8-step unrolled loss|test_geometry|JL-6-R v5+H8 (2 seeds)|max_penetration_pred": [
+  -94.04592548219064,
+  2.675285852045341,
+  1.0
+ ],
+ "A) both with 8-step unrolled loss|test_geometry|JL-6-R v5+H8 (2 seeds)|final_ang_speed_err": [
+  -63.2697559061884,
+  5.808139326562235,
+  1.0
+ ],
+ "B) no unrolled loss|test|JL-6-R v6 (3 seeds)|pos_err@500": [
+  -25.661683809774356,
+  6.329095379237776,
+  0.7777777777777778
+ ],
+ "B) no unrolled loss|test|JL-6-R v6 (3 seeds)|pos_err@1000": [
+  -22.928381641924787,
+  2.622270684081255,
+  0.8888888888888888
+ ],
+ "B) no unrolled loss|test|JL-6-R v6 (3 seeds)|pos_err_final": [
+  -17.228667794463103,
+  5.4633036234315595,
+  0.4444444444444444
+ ],
+ "B) no unrolled loss|test|JL-6-R v6 (3 seeds)|rot_err_deg@500": [
+  -32.24337089509965,
+  5.727039033499928,
+  1.0
+ ],
+ "B) no unrolled loss|test|JL-6-R v6 (3 seeds)|rot_err_deg@1000": [
+  -9.822142914036617,
+  3.1456152165413678,
+  0.4444444444444444
+ ],
+ "B) no unrolled loss|test|JL-6-R v6 (3 seeds)|rot_err_deg_final": [
+  -2.349315435908753,
+  1.325576288953,
+  0.5555555555555556
+ ],
+ "B) no unrolled loss|test|JL-6-R v6 (3 seeds)|sym_rot_err_deg_final": [
+  -1.1696186683690237,
+  12.151161573919312,
+  0.0
+ ],
+ "B) no unrolled loss|test|JL-6-R v6 (3 seeds)|impact_dv_err": [
+  -29.1967519322751,
+  3.790694342624014,
+  1.0
+ ],
+ "B) no unrolled loss|test|JL-6-R v6 (3 seeds)|impact_dw_err": [
+  -39.4063797031873,
+  3.1319363772611126,
+  1.0
+ ],
+ "B) no unrolled loss|test|JL-6-R v6 (3 seeds)|max_penetration_pred": [
+  -97.46673643469775,
+  0.44486426634028886,
+  1.0
+ ],
+ "B) no unrolled loss|test|JL-6-R v6 (3 seeds)|final_ang_speed_err": [
+  -37.19596696425254,
+  12.776203711262701,
+  0.7777777777777778
+ ],
+ "B) no unrolled loss|test|JL-6 v6 (3 seeds)|pos_err@500": [
+  -19.18107415852502,
+  8.59950719294049,
+  0.7777777777777778
+ ],
+ "B) no unrolled loss|test|JL-6 v6 (3 seeds)|pos_err@1000": [
+  -19.110513361395782,
+  4.113589712593375,
+  0.7777777777777778
+ ],
+ "B) no unrolled loss|test|JL-6 v6 (3 seeds)|pos_err_final": [
+  -13.872327100009688,
+  2.8427676716461034,
+  0.2222222222222222
+ ],
+ "B) no unrolled loss|test|JL-6 v6 (3 seeds)|rot_err_deg@500": [
+  -21.577592033634897,
+  5.0778896370856,
+  0.3333333333333333
+ ],
+ "B) no unrolled loss|test|JL-6 v6 (3 seeds)|rot_err_deg@1000": [
+  -6.657318146255125,
+  4.299978425123404,
+  0.1111111111111111
+ ],
+ "B) no unrolled loss|test|JL-6 v6 (3 seeds)|rot_err_deg_final": [
+  -1.1085917696450456,
+  1.5266624097470731,
+  0.0
+ ],
+ "B) no unrolled loss|test|JL-6 v6 (3 seeds)|sym_rot_err_deg_final": [
+  7.866484604870781,
+  8.282911364840801,
+  0.0
+ ],
+ "B) no unrolled loss|test|JL-6 v6 (3 seeds)|impact_dv_err": [
+  -23.390217016834598,
+  2.1825132900814057,
+  1.0
+ ],
+ "B) no unrolled loss|test|JL-6 v6 (3 seeds)|impact_dw_err": [
+  -29.180796870387667,
+  3.390161050083862,
+  1.0
+ ],
+ "B) no unrolled loss|test|JL-6 v6 (3 seeds)|max_penetration_pred": [
+  -97.23630436753277,
+  0.47298286749692664,
+  1.0
+ ],
+ "B) no unrolled loss|test|JL-6 v6 (3 seeds)|final_ang_speed_err": [
+  -29.522427029578257,
+  13.800810644971799,
+  0.6666666666666666
+ ],
+ "B) no unrolled loss|test_geometry|JL-6-R v6 (3 seeds)|pos_err@500": [
+  -27.983616019762607,
+  3.387037718126663,
+  1.0
+ ],
+ "B) no unrolled loss|test_geometry|JL-6-R v6 (3 seeds)|pos_err@1000": [
+  -18.68993889133846,
+  4.821671852858566,
+  0.6666666666666666
+ ],
+ "B) no unrolled loss|test_geometry|JL-6-R v6 (3 seeds)|pos_err_final": [
+  -11.555550021509525,
+  7.07304491894078,
+  0.2222222222222222
+ ],
+ "B) no unrolled loss|test_geometry|JL-6-R v6 (3 seeds)|rot_err_deg@500": [
+  -29.79672037113941,
+  5.583242570759268,
+  0.5555555555555556
+ ],
+ "B) no unrolled loss|test_geometry|JL-6-R v6 (3 seeds)|rot_err_deg@1000": [
+  -15.920721911091777,
+  3.7872995246600833,
+  0.5555555555555556
+ ],
+ "B) no unrolled loss|test_geometry|JL-6-R v6 (3 seeds)|rot_err_deg_final": [
+  -8.745948448730665,
+  0.6159709816904511,
+  0.3333333333333333
+ ],
+ "B) no unrolled loss|test_geometry|JL-6-R v6 (3 seeds)|sym_rot_err_deg_final": [
+  -2.8249951951566983,
+  7.2770558290867,
+  0.0
+ ],
+ "B) no unrolled loss|test_geometry|JL-6-R v6 (3 seeds)|impact_dv_err": [
+  -33.93168701656929,
+  2.959704300702127,
+  1.0
+ ],
+ "B) no unrolled loss|test_geometry|JL-6-R v6 (3 seeds)|impact_dw_err": [
+  -46.03830659429483,
+  1.144411273191306,
+  1.0
+ ],
+ "B) no unrolled loss|test_geometry|JL-6-R v6 (3 seeds)|max_penetration_pred": [
+  -96.35776795935904,
+  0.46565560503352665,
+  1.0
+ ],
+ "B) no unrolled loss|test_geometry|JL-6-R v6 (3 seeds)|final_ang_speed_err": [
+  -32.26800064607714,
+  9.100104847192725,
+  0.8888888888888888
+ ],
+ "B) no unrolled loss|test_geometry|JL-6 v6 (3 seeds)|pos_err@500": [
+  -21.226749494248306,
+  3.8011232316364443,
+  0.6666666666666666
+ ],
+ "B) no unrolled loss|test_geometry|JL-6 v6 (3 seeds)|pos_err@1000": [
+  -16.485966327212058,
+  6.254777447793816,
+  0.5555555555555556
+ ],
+ "B) no unrolled loss|test_geometry|JL-6 v6 (3 seeds)|pos_err_final": [
+  -9.743825870172099,
+  7.172875526626612,
+  0.0
+ ],
+ "B) no unrolled loss|test_geometry|JL-6 v6 (3 seeds)|rot_err_deg@500": [
+  -22.069349686861468,
+  3.8733410849994727,
+  0.1111111111111111
+ ],
+ "B) no unrolled loss|test_geometry|JL-6 v6 (3 seeds)|rot_err_deg@1000": [
+  -6.441994331216455,
+  4.2814446178522925,
+  0.1111111111111111
+ ],
+ "B) no unrolled loss|test_geometry|JL-6 v6 (3 seeds)|rot_err_deg_final": [
+  -7.030888945236178,
+  1.5918518202676455,
+  0.0
+ ],
+ "B) no unrolled loss|test_geometry|JL-6 v6 (3 seeds)|sym_rot_err_deg_final": [
+  -8.516502444756945,
+  9.648098782477305,
+  0.0
+ ],
+ "B) no unrolled loss|test_geometry|JL-6 v6 (3 seeds)|impact_dv_err": [
+  -29.061766384707287,
+  4.934177239794611,
+  1.0
+ ],
+ "B) no unrolled loss|test_geometry|JL-6 v6 (3 seeds)|impact_dw_err": [
+  -41.05637877678141,
+  1.3840934130617852,
+  1.0
+ ],
+ "B) no unrolled loss|test_geometry|JL-6 v6 (3 seeds)|max_penetration_pred": [
+  -96.21857365667978,
+  0.49209837642213344,
+  1.0
+ ],
+ "B) no unrolled loss|test_geometry|JL-6 v6 (3 seeds)|final_ang_speed_err": [
+  -30.756192376415147,
+  10.699236416458637,
+  0.5555555555555556
+ ]
+}

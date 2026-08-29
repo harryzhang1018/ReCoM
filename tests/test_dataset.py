@@ -71,3 +71,24 @@ def test_splits_by_episode_and_geometry_group():
     held_groups = {e["geometry_group"] for e in eps if e["episode_id"] in set(sp["test_geometry"])}
     train_groups = {e["geometry_group"] for e in eps if e["episode_id"] in set(sp["train"])}
     assert held_groups and not (held_groups & train_groups)
+
+
+def test_impulse_targets_and_phys_in_windows(recs):
+    from recom.data.dataset import CAT_FAR, EpisodeCache, ImpulseFrameDataset, compute_state_normalization, compute_wrench_normalization, episode_to_arrays
+    cache = EpisodeCache.__new__(EpisodeCache)
+    cache.episodes = [episode_to_arrays(r) for r in recs]
+    ds = TransitionWindowDataset(cache, T=8)
+    item = ds[0]
+    assert item["target_dv_contact"].shape == (8, 3) and item["target_dL_contact"].shape == (8, 3) and item["target_dw_contact"].shape == (8, 3)
+    assert item["target_j_slot"].shape == (8, 4, 3) and item["inertia_diag_over_m"].shape == (3,) and item["mass"].dim() == 0
+    ep = cache.episodes[0]
+    far = ep.category == CAT_FAR
+    assert np.abs(ep.impulse["target_dv_contact"][far]).max() < 1e-6
+    fd = ImpulseFrameDataset(cache, categories=[CAT_FAR])
+    assert len(fd) == sum((e.category == CAT_FAR).sum() for e in cache.episodes)
+    assert fd[0]["states"].shape == (1, 13)
+    wn = compute_wrench_normalization(cache)
+    assert wn["wrench_std"].shape == (6,) and wn["dL_std"].shape == (3,) and (wn["wrench_std"] > 0).all()
+    n0 = compute_state_normalization(cache, np.array([0, 0, -9.81e-3, 0, 0, 0]), gyro=False)
+    n1 = compute_state_normalization(cache, np.array([0, 0, -9.81e-3, 0, 0, 0]), gyro=True)
+    assert np.allclose(n0["target_std"][:3], n1["target_std"][:3]) and not np.allclose(n0["target_mean"][3:], n1["target_mean"][3:], atol=1e-12)

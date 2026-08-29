@@ -9,6 +9,7 @@ Common output contract (dict of tensors, K = 4 slots, batch B):
     latent        (B, K, L)   learned local contact latent
     log_var       (B, K)      log-variance of the normalized box-point error (uncertainty)
     cardinality   (B, K+1)    logits for the number of contacts 0..K
+    slot_embedding (B, K, d_model)  post-attention slot query (unsupervised; consumed by the impulse decoder)
 
 Pair-relative frame: world axes with origin (pos_x, pos_y, 0).  All pose-dependent features are
 functions of (R, pos_z) only, so the prediction is exactly invariant to in-plane translation.
@@ -106,7 +107,7 @@ class SetDecoder(nn.Module):
         latent = h[..., 11:11 + self.latent_dim]
         log_var = 6.0 * torch.tanh(h[..., 11 + self.latent_dim] / 6.0)   # bounded in (-6, 6): keeps the NLL bounded below
         pooled = tokens.mean(1)
-        return {"logit": logit, "p_box_local": p_box, "p_ground_rel": p_gnd, "n": n, "d": d, "latent": latent, "log_var": log_var, "cardinality": self.card(pooled)}
+        return {"logit": logit, "p_box_local": p_box, "p_ground_rel": p_gnd, "n": n, "d": d, "latent": latent, "log_var": log_var, "cardinality": self.card(pooled), "slot_embedding": q}
 
 
 def pose_features(R: torch.Tensor, pos_z: torch.Tensor, points_box: torch.Tensor, normals_box: torch.Tensor | None = None) -> torch.Tensor:
