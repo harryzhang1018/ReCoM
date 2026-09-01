@@ -315,7 +315,11 @@ class ContactImpulseDecoder(nn.Module):
         dv_c, dL = aggregate_wrench(j, r, active)
         I_over_m = broadcast_phys(phys["inertia_diag_over_m"], lead)
         w6 = wrench_to_delta(dv_c, dL, state[..., 3:7], I_over_m)
-        return {"j_slot": j, "r": r, "dv_c": dv_c, "dL": dL, "dw_c": w6[..., 3:6], "wrench": w6}
+        out = {"j_slot": j, "r": r, "dv_c": dv_c, "dL": dL, "dw_c": w6[..., 3:6], "wrench": w6}
+        if j_solver is not None:   # aggregated physics-only wrench (solver prior alone), for anchoring losses
+            dv_s, dL_s = aggregate_wrench(j_solver * active.unsqueeze(-1), r, active)
+            out["wrench_solver"] = wrench_to_delta(dv_s, dL_s, state[..., 3:7], I_over_m)
+        return out
 
 
 def build_decoder(cfg: dict) -> ContactImpulseDecoder:

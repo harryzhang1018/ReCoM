@@ -62,17 +62,48 @@ def load_decoder(path: str, device) -> tuple[ContactImpulseDecoder, dict]:
     return dec, ck["config"]
 
 
-def impulse_loss(out: dict, batch: dict, active: torch.Tensor, wrench_std: torch.Tensor, dL_std: torch.Tensor, delta: float = 1.0, label_thr: float = 1e-4) -> tuple[torch.Tensor, dict]:
+def impulse_loss(out: dict, batch: dict, active: torch.Tensor, wrench_std: torch.Tensor, dL_std: torch.Tensor, delta: float = 1.0, label_thr: float = 1e-4,
+                 tan_weight: float = 1.0, rest_eq_weight: float = 0.0, solver_anchor_weight: float = 0.0,
+                 anchor_v0: float = 0.15, anchor_width: float = 0.05) -> tuple[torch.Tensor, dict]:
     """Huber loss on the normalized net wrench over frames where the geometry encoder activated at least one slot.
-    Frames with a nonzero label but no active slot are encoder misses: excluded from the loss, counted as missed."""
+    Frames with a nonzero label but no active slot are encoder misses: excluded from the loss, counted as missed.
+
+    tan_weight   : extra weight on the creep/spin channels of the main loss (tangential dv_xy and yaw dL_z; the plane
+                   normal is world z, so the normal/tangential split is exact by component).
+    rest_eq_weight: equilibrium regularizer on GT-resting frames: pull the *prediction* to the exact static balance
+                   (dv = g dt ẑ, dL = 0) instead of Chrono's micro-oscillating resting labels (§9.12 creep).
+    solver_anchor_weight: pull the net wrench toward the closed-form single-contact solver wrench on low-speed frames,
+                   weight σ((v0 − s)/width) with s = |v| + |ω|·|he| (leaves impacts unconstrained)."""
     m = (active.amax(-1) > 0).float()                                                   # (...,)
-    e_dv = torch.nn.functional.huber_loss((out["dv_c"] - batch["target_dv_contact"]) / wrench_std[:3], torch.zeros_like(out["dv_c"]), reduction="none", delta=delta).sum(-1)
-    e_dL = torch.nn.functional.huber_loss((out["dL"] - batch["target_dL_contact"]) / dL_std, torch.zeros_like(out["dL"]), reduction="none", delta=delta).sum(-1)
+    w_dv = torch.tensor([tan_weight, tan_weight, 1.0], device=m.device)
+    w_dL = torch.tensor([1.0, 1.0, tan_weight], device=m.device)
+    e_dv = (torch.nn.functional.huber_loss((out["dv_c"] - batch["target_dv_contact"]) / wrench_std[:3], torch.zeros_like(out["dv_c"]), reduction="none", delta=delta) * w_dv).sum(-1)
+    e_dL = (torch.nn.functional.huber_loss((out["dL"] - batch["target_dL_contact"]) / dL_std, torch.zeros_like(out["dL"]), reduction="none", delta=delta) * w_dL).sum(-1)
     denom = m.sum().clamp_min(1.0)
     l_dv, l_dL = (e_dv * m).sum() / denom, (e_dL * m).sum() / denom
     label = batch["target_dv_contact"].norm(dim=-1) > label_thr
     missed = (label & (m == 0)).float().sum() / label.float().sum().clamp_min(1.0)
-    return l_dv + l_dL, {"dv": l_dv.item(), "dL": l_dL.item(), "missed": missed.item(), "frac_eval": (m.sum() / m.numel()).item()}
+    loss = l_dv + l_dL
+    parts = {"dv": l_dv.item(), "dL": l_dL.item(), "missed": missed.item(), "frac_eval": (m.sum() / m.numel()).item()}
+    lead1 = [1] * (m.dim() - 1)
+    if rest_eq_weight > 0:
+        rest = (batch["category"] == CAT_REST).float() * m
+        g_dt = (batch["gravity"] * batch["dt"]).view(-1, *lead1)
+        e_eq = ((out["dv_c"][..., :2] / wrench_std[:2]).abs().sum(-1)
+                + (out["dv_c"][..., 2] - g_dt).abs() / wrench_std[2]
+                + (out["dL"] / dL_std).abs().sum(-1))
+        l_eq = (e_eq * rest).sum() / rest.sum().clamp_min(1.0)
+        loss = loss + rest_eq_weight * l_eq
+        parts["eq"] = l_eq.item()
+    if solver_anchor_weight > 0 and "wrench_solver" in out:
+        st = batch["states"]
+        s = st[..., 7:10].norm(dim=-1) + st[..., 10:13].norm(dim=-1) * batch["half_extents"].norm(dim=-1).view(-1, *lead1)
+        wlow = torch.sigmoid((anchor_v0 - s) / anchor_width) * m
+        e_anc = ((out["wrench"] - out["wrench_solver"]) / wrench_std).abs().sum(-1)
+        l_anc = (e_anc * wlow).sum() / wlow.sum().clamp_min(1.0)
+        loss = loss + solver_anchor_weight * l_anc
+        parts["anc"] = l_anc.item()
+    return loss, parts
 
 
 @torch.no_grad()
@@ -112,6 +143,11 @@ def main(argv=None) -> None:
     ap.add_argument("--batch", type=int, default=512)
     ap.add_argument("--lr", type=float, default=3e-4)
     ap.add_argument("--huber-delta", type=float, default=0.1, help="in normalized units; small = near-L1 so resting (0.2 sigma) and impact (50 sigma) frames get equal weight")
+    ap.add_argument("--tan-weight", type=float, default=1.0, help="extra main-loss weight on the creep/spin channels (dv_xy, dL_z)")
+    ap.add_argument("--rest-eq-weight", type=float, default=0.0, help="equilibrium regularizer on resting frames: prediction -> (g dt z_hat, 0)")
+    ap.add_argument("--solver-anchor-weight", type=float, default=0.0, help="pull the wrench to the solver prior on low-speed frames")
+    ap.add_argument("--anchor-v0", type=float, default=0.15, help="solver-anchor speed threshold (m/s; Chrono min_bounce_speed)")
+    ap.add_argument("--anchor-width", type=float, default=0.05, help="solver-anchor sigmoid width (m/s)")
     ap.add_argument("--no-timing-feats", action="store_true", help="v1 decoder inputs (regressed d only, no exact contact-point height / velocity deficit)")
     ap.add_argument("--no-scaled-head", action="store_true", help="v1 head: fixed out_scale instead of the per-slot physical scale")
     ap.add_argument("--head-scale", default="vn", choices=["vn", "delassus", "solver"], help="per-slot scale: approach speed, the frictionless single-contact normal impulse, or the closed-form frictional single-contact solver (also adds its impulse as features)")
@@ -173,7 +209,9 @@ def main(argv=None) -> None:
             batch = yaw_augment(batch, aug_gen)
         c = batch_contacts(batch, a.geometry_source, encoder, 0, device)
         out_ = decoder(c, batch["states"], batch["half_extents"], batch_phys(batch))
-        loss, parts = impulse_loss(out_, batch, c["active"], wrench_std, dL_std, a.huber_delta)
+        loss, parts = impulse_loss(out_, batch, c["active"], wrench_std, dL_std, a.huber_delta,
+                                   tan_weight=a.tan_weight, rest_eq_weight=a.rest_eq_weight,
+                                   solver_anchor_weight=a.solver_anchor_weight, anchor_v0=a.anchor_v0, anchor_width=a.anchor_width)
         opt.zero_grad(set_to_none=True)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(decoder.parameters(), 1.0)

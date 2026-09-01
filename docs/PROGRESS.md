@@ -18,6 +18,13 @@ Last updated: 2026-08-28 (America/Chicago). Written so the next session can pick
   (test / held-out geometry), impact Δω −41 % / −48 %, penetration −95 %, residual spin −59 %. Orientation at 2 s is
   chaotic-saturated for every model incl. the exact-contact oracle. **Next actions:** pass-2 items (JL-6-C momentum loss,
   POOL-DEC, ORACLE-JL, decoder fine-tuning), NeDM-repo integration of the wrench interface, broad-phase study.
+* **2026-08-31 — closed-loop bottleneck attribution (§9.12, `results/ablate_bottleneck/val/`):** stage-substitution
+  rollouts show the encoder is *not* the bottleneck (FULL ≈ analytic geometry, paired CIs ≈ 0); drift accrues in the
+  sustained-contact / multi-bounce regime (4.7 + 3.3 cm median of ~11 cm final), the decoder wrench dominates
+  impact-time velocity error (oracle halves it), and the decoder's learned head causes a 6.7 cm/s resting creep
+  (solver-prior-only: 0.64).  A retraining-free speed-gated solver/decoder blend (FULL-HYB) halves creep and residual
+  spin with bit-identical impact/pose — candidate deployed config.  **Next:** decoder resting-equilibrium loss,
+  multi-contact solver prior, sustained-contact-weighted unrolled loss.
 * Older next actions: end-of-episode orientation drift analysis (per-regime), near-contact recall 99.2 → 99.5 %
   (threshold/calibration or more data), neural-SDF baseline, Phase 1C, NeDM-repo integration via `nedm_export`.
 
@@ -613,3 +620,100 @@ Conclusion: with the impulse decoder in the loop, orientation error at 0.5 s dro
 by 15–28 % on both splits, first-impact angular-velocity error by 40–48 %, penetration by >90 % and residual spin at rest
 by >50 %, at matched training; the 2 s orientation is saturated (chaotic settling) for every model including the
 exact-contact oracle.  Gates #1–#7 of the plan pass (§9.5–9.10).
+
+### 9.12 Closed-loop bottleneck attribution (pass-2 ablations), 2026-08-31
+
+*Question:* which stage — E (point contact encoder), D (impulse decoder v6), N (NRD transformer residual) — carries the
+closed-loop drift of the milestone sim?  `scripts/ablate_bottleneck.py` rolls out the frozen `local_ed3_jl6r_8k_v6_h8`
+model on all 255 val episodes with one stage at a time swapped for an oracle/analytic reference (all substituted cells
+share analytic geometry, hence identical gating); paired per-episode bootstrap CIs.  New per-cell diagnostics: position
+drift accrued per GT regime, resting-creep rate (pred COM speed while GT settled), encoder gate confusion on the states
+the rollout actually *visits*.  Outputs in `results/ablate_bottleneck/val/` (`summary.json`, `rows_*.json`,
+`curves_*.npz`, `bottleneck.png`).
+
+| cell (geometry / wrench / NRD) | pos@500 | pos final | rot@500 | impact dv / dw | penetr. | rest creep |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| FULL (learned/decoder/on) | 0.026 m | 0.116 m | 14.5° | 0.354 / 3.16 | 0.4 mm | 6.7 cm/s |
+| E-ANA (analytic/decoder/on) | 0.026 | 0.106 | 13.3° | 0.335 / 2.97 | 0.5 mm | 6.2 |
+| E-GT (gt replay/decoder/on) | 0.059 | 1.60 | 37.3° | 0.314 / 3.23 | 1.66 m | 55.9 |
+| D-ORACLE (analytic/labels/on) | 0.030 | 0.35† | 13.0° | **0.166 / 1.15** | 268 mm† | 30.4† |
+| D-SOLVER (analytic/solver prior/on) | 0.035 | 0.107 | 13.0° | 0.424 / 3.85 | 0.5 mm | **0.64** |
+| N-OFF (analytic/decoder/off) | 0.034 | 0.165 | 16.6° | 0.475 / 3.82 | 0.6 mm | 15.5 |
+| PHYS / REPLAY (oracle replay/off) | ~1e-6 | ~1e-5 | ~1e-4 | ~0 | 1.4 / 0.3 mm | 0.14 / 0.06 |
+
+† open-loop label replay diverges after the trajectories separate — D-ORACLE late/rest columns are replay artifacts;
+its impact-window and @500 columns are the meaningful ones.  Findings (paired CIs in the analysis transcript):
+
+1. **The encoder is exonerated in the closed loop** — FULL vs E-ANA: every paired diff CI contains 0 (extends
+   teacher-forced Ablation 7 to visited states).  Gate confusion on visited states: 0.6 % FP / 0.4 % FN frames,
+   gate-off-while-GT-settled 1.1 %.
+2. **Open-loop geometry replay is catastrophic** (E-GT: final 1.6 m, penetration 1.66 m): contacts must be recomputed
+   from the predicted pose; consistency beats accuracy.
+3. **Decoder wrench error is the dominant impact-time error** — oracle wrench halves impact dv (0.335→0.166 *) and dw
+   (2.97→1.15 *) — but does *not* move pos/rot@500 (diff n.s.): the pre-saturation pose error is not limited by the
+   first-impact impulse.
+4. **Where the drift actually accrues (FULL, median):** sustained contact 4.7 cm + near-contact flight between bounces
+   3.3 cm ≫ first impact 0.16 cm, rebound 0.7 cm, resting 0.12 cm (in-window).  The bottleneck is the *sustained-contact
+   / multi-bounce response*, not the single first impact.
+5. **The learned decoder head causes the resting creep** — D-SOLVER (physics prior only): 0.64 vs 6.2 cm/s (10×, *),
+   at −12 % impact-dv cost and unchanged pose; N-OFF creep 15.5 shows the NRD learned to half-cancel the decoder's
+   resting bias.  Videos (`results/videos/`, e.g. the pilot1b_00542 plate) show the failure directly.
+6. **NRD is net positive everywhere** (N-OFF vs E-ANA: pos@500 +34 % *, impact dv +42 % *, final +56 % *): it corrects
+   part of the per-step contact-response ambiguity (§9.5) on top of the wrench.
+7. **PHYS/REPLAY ≈ exact** at the median (1e-5 m over 2 s): labels + gate + `integrate()` are self-consistent
+   end-to-end; median replay is machine-precision, tails chaotic.
+
+**Plug-in fix (no retraining), FULL-HYB:** wrench = solver prior + σ((s−0.15)/0.05)·(decoder − solver),
+s = |v| + |ω|·|he| (speed-gated blend, threshold = Chrono `min_bounce_speed`).  Paired vs FULL: rest creep −48 %
+(6.7→3.5 cm/s *), final spin −32 % (0.175→0.119 rad/s *), impact/pose bit-identical (diff exactly 0 — the blend leaves
+impact untouched).  `D-HYB` vs `D-SOLVER` shows the remaining creep is decoder leak below the sigmoid + the NRD's own
+resting response — the full 10× needs retraining, not blending.
+
+*Recommended next (in order of expected value):* (i) decoder resting-equilibrium loss — penalize tangential net impulse
+and enforce wrench ≈ −gravity step on settled frames (or train the head to output a *correction to the solver prior*
+that decays with s); (ii) target sustained-contact accuracy: multi-contact solver prior (current one solves each slot
+alone) + event-weighted unrolled loss over contact runs rather than first-impact windows; (iii) keep FULL-HYB as the
+deployed configuration meanwhile; (iv) do not spend effort on the encoder or on bigger NRD context.
+
+### 9.13 Decoder loss study (n/t channels, resting equilibrium, solver anchoring) + retrain — 2026-08-31/09-01
+
+*Follows §9.12 recommendation (i).*  Three loss mechanisms added to `impulse_loss` (all default-off; 45/45 tests pass):
+`--tan-weight` (extra main-loss weight on the creep/spin channels dv_xy and dL_z — the plane normal is world z so the
+n/t split is exact by component), `--rest-eq-weight` (pull the *prediction* on GT-resting frames to the static balance
+(g dt ẑ, 0) instead of the micro-oscillating labels), `--solver-anchor-weight` (pull the net wrench toward the
+closed-form single-contact solver wrench with weight σ((0.15−s)/0.05), s = |v|+|ω||he|; the decoder now also returns
+`wrench_solver`).  Five 20 k-step variants on the v6 recipe (`scripts/run_v7_decoder_sweep.sh`,
+`runs/local_ed2_dec_v7_{nt,rest,solv,ntrest,all}`); closed-loop cells FULL (frozen NRD) and N-OFF per variant
+(`scripts/run_v7_eval.sh`, rows in `results/ablate_bottleneck/val/`).  New eval metrics: `dv_t/dv_n/dLz` MAE per regime.
+
+Teacher-forced: no variant costs impact accuracy (first-impact dv 0.63–0.66 ≈ v6); rest-eq cuts resting dLz 2.6×.
+Closed loop (255 val episodes, paired vs v6):
+
+| variant | FULL rest creep | FULL spin | N-OFF rest creep | N-OFF spin | impact dv |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| v6 | 6.7 cm/s | 0.175 | 15.5 | 0.299 | 0.354 |
+| nt | 6.5 | 0.172 | 15.6 * | 0.273 * | n.s. |
+| rest | 9.2 * worse | 0.398 * worse | 29.3 * worse | 0.298 | n.s. |
+| **solv** | **4.5 *** | 0.143 | **8.8 *** | **0.168 *** | n.s. |
+| ntrest | 10.0 * worse | 0.433 * worse | 26.1 * worse | 0.340 | n.s. |
+| all | 6.8 | 0.176 | 17.1 | 0.165 * | n.s. |
+
+Two mechanism-level findings: (1) **co-adaptation** — the frozen NRD cancels v6's specific resting bias, so changing the
+decoder's bias under it (rest/ntrest) makes the NRD's compensation the new bias; (2) **static targets destabilize rest**
+— Chrono's rest is held by state-dependent micro-corrections, so pulling to the constant (g dt ẑ, 0) flattens the needed
+state response (worse even in N-OFF), while the *state-dependent* solver target helps in both modes.  Anchor to physics,
+not to constants.  Channel reweighting alone (nt) does nothing — reweighting noisy labels does not remove bias.
+
+**Final configuration** = decoder v7-solv + NRD retrained against it (`runs/local_ed3_jl6r_8k_v7solv_h8`, exact §9.8
+recipe, 73 min) + speed-gated hybrid wrench at inference.  Paired vs the v6 milestone (255 episodes/split):
+
+| metric | val: v6 → final | test: v6 → final |
+| --- | --- | --- |
+| resting creep | 6.72 → **0.74 cm/s** (−89 % *) | 6.75 → **0.71** (−90 % *) |
+| final residual spin | 0.175 → **0.091 rad/s** (−48 % *) | 0.174 → **0.099** (−43 % *) |
+| pos err final | 0.116 → 0.107 (n.s.) | 0.123 → **0.108 m** (−8 % *) |
+| impact dv / dw, pos@500, rot@500, penetration | all n.s. (no cost) | all n.s. (no cost) |
+
+Retraining alone reaches only 5.8 cm/s creep: the fresh NRD *re-learns* the resting micro-dynamics from the labels, so
+the inference blend stays necessary — a blend-free fix needs the same speed-gated treatment on the NRD residual (open).
+Remaining §9.12 item (ii) (sustained-contact / multi-contact solver prior) is still open and still the pose bottleneck.

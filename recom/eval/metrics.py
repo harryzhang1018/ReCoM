@@ -129,6 +129,8 @@ def impulse_frame_metrics(out: dict, target: dict, active: torch.Tensor, n: torc
     res = {
         "label": label.float(), "pred_active": pred_active.float(),
         "dv_abs": (dv_p - dv_t).norm(dim=-1), "dL_abs": (dL_p - dL_t).norm(dim=-1), "dw_abs": (dw_p - dw_t).norm(dim=-1),
+        # normal/tangential split (plane normal = world z): tangential dv drives creep, dL_z drives residual yaw spin
+        "dv_t_abs": (dv_p[..., :2] - dv_t[..., :2]).norm(dim=-1), "dv_n_abs": (dv_p[..., 2] - dv_t[..., 2]).abs(), "dLz_abs": (dL_p[..., 2] - dL_t[..., 2]).abs(),
         "dv_rel": (dv_p - dv_t).norm(dim=-1) / dv_t.norm(dim=-1).clamp_min(1e-12), "dL_rel": (dL_p - dL_t).norm(dim=-1) / dL_t.norm(dim=-1).clamp_min(1e-12),
         "dir_err_deg": torch.rad2deg(torch.arccos(cosang.clamp(-1, 1))),
         "dv_pred_mag": dv_p.norm(dim=-1), "dv_target_mag": dv_t.norm(dim=-1), "dL_target_mag": dL_t.norm(dim=-1), "dw_target_mag": dw_t.norm(dim=-1),
@@ -147,7 +149,7 @@ def aggregate_impulse_metrics(acc: dict[str, list], categories: np.ndarray | Non
              "missed_impulse_rate": float((lab & ~pa).sum() / max(lab.sum(), 1)),
              "spurious_impulse_rate": float(((~lab) & pa & (A["dv_pred_mag"][m] > label_thr)).sum() / max((~lab).sum(), 1)),   # nonzero prediction on zero-label frames
              "cone_violation_rate": float(A["cone_viol_frac"][m][pa].mean()) if pa.any() else None}
-        for k in ("dv", "dL", "dw"):
+        for k in ("dv", "dL", "dw", "dv_t", "dv_n", "dLz"):
             r[f"{k}_mae"] = float(A[f"{k}_abs"][m][ev].mean()) if ev.any() else None
             r[f"{k}_p90"] = float(np.percentile(A[f"{k}_abs"][m][ev], 90)) if ev.any() else None
         # including encoder misses (error = full label) -> what the transition model actually sees
